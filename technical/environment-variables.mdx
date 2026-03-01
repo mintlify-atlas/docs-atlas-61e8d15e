@@ -11,20 +11,28 @@ Cabina uses environment variables for configuration across different services. T
 
 ### Supabase Connection
 
-<ParamField path="VITE_SUPABASE_URL" type="string" required>
-  Your Supabase project URL
+<Info>
+**Note:** In the current codebase (`src/lib/supabaseClient.ts`), Supabase credentials are hardcoded for the production instance. If you're forking this project for your own use, you'll need to update those values directly in the source file or refactor to use environment variables.
+</Info>
+
+<ParamField path="VITE_SUPABASE_URL" type="string">
+  Your Supabase project URL (if using env vars)
   
   **Example:** `https://elesttjfwfhvzdvldytn.supabase.co`
   
   **Where to find:** Supabase Dashboard → Settings → API → Project URL
+  
+  **Current setup:** Hardcoded in `src/lib/supabaseClient.ts:3`
 </ParamField>
 
-<ParamField path="VITE_SUPABASE_ANON_KEY" type="string" required>
-  Supabase anonymous/public API key
+<ParamField path="VITE_SUPABASE_ANON_KEY" type="string">
+  Supabase anonymous/public API key (if using env vars)
   
   **Example:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
   
   **Where to find:** Supabase Dashboard → Settings → API → anon public key
+  
+  **Current setup:** Hardcoded in `src/lib/supabaseClient.ts:4`
   
   <Warning>This key is safe to expose in client-side code due to RLS policies</Warning>
 </ParamField>
