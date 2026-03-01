@@ -1,0 +1,445 @@
+---
+title: mercadopago-payment
+description: Payment processing and webhook handler for Mercado Pago integration
+---
+
+## Endpoint
+
+```
+POST /functions/v1/mercadopago-payment
+```
+
+## Overview
+
+The `mercadopago-payment` edge function handles two operations:
+
+1. **Create Payment Preference** - Generate Mercado Pago checkout link
+2. **Webhook Handler** - Process payment notifications and credit user accounts
+
+<Note>
+This function is used exclusively for the B2C model (direct user purchases).
+</Note>
+
+## Create Payment Preference
+
+### Request
+
+#### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token with Supabase anon key
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  Must be `application/json`
+</ParamField>
+
+#### Body Parameters
+
+<ParamField body="user_id" type="uuid" required>
+  User ID purchasing credits
+</ParamField>
+
+<ParamField body="credits" type="integer" required>
+  Number of credits to purchase
+  
+  **Example:** `500`
+</ParamField>
+
+<ParamField body="price" type="number" required>
+  Price in ARS (Argentine Pesos)
+  
+  **Example:** `2500.00`
+</ParamField>
+
+<ParamField body="pack_name" type="string" required>
+  Display name for the credit pack
+  
+  **Example:** `"Pack Premium"`
+</ParamField>
+
+<ParamField body="redirect_url" type="string" default="https://metalab30.com/cabina/">
+  URL to redirect after payment completion
+</ParamField>
+
+### Response
+
+#### Success
+
+```json
+{
+  "id": "1234567890-abcd-1234-abcd-1234567890ab",
+  "init_point": "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=1234567890-abcd",
+  "sandbox_init_point": "https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=test-1234"
+}
+```
+
+<ResponseField name="id" type="string">
+  Mercado Pago preference ID
+</ResponseField>
+
+<ResponseField name="init_point" type="string">
+  Production checkout URL - redirect user here
+</ResponseField>
+
+<ResponseField name="sandbox_init_point" type="string">
+  Test checkout URL (for sandbox testing)
+</ResponseField>
+
+#### Error
+
+```json
+{
+  "error": true,
+  "message": "invalid_client_id",
+  "code": "MP_ERROR",
+  "details": { ... }
+}
+```
+
+### Code Example
+
+```typescript
+import { supabase } from './supabaseClient';
+
+const createPayment = async (
+  userId: string,
+  credits: number,
+  price: number,
+  packName: string
+) => {
+  const { data, error } = await supabase.functions.invoke(
+    'mercadopago-payment',
+    {
+      body: {
+        user_id: userId,
+        credits: credits,
+        price: price,
+        pack_name: packName,
+        redirect_url: window.location.origin
+      }
+    }
+  );
+
+  if (error || data.error) {
+    throw new Error(data?.message || 'Payment creation failed');
+  }
+
+  // Redirect user to Mercado Pago checkout
+  window.location.href = data.init_point;
+};
+
+// Usage
+await createPayment(
+  user.id,
+  500,
+  2500.00,
+  'Pack Premium'
+);
+```
+
+## Webhook Handler
+
+### Webhook URL
+
+Configure this URL in Mercado Pago dashboard:
+
+```
+https://<project-ref>.supabase.co/functions/v1/mercadopago-payment?webhook=true
+```
+
+**Example:**
+```
+https://elesttjfwfhvzdvldytn.supabase.co/functions/v1/mercadopago-payment?webhook=true
+```
+
+### Request (from Mercado Pago)
+
+Mercado Pago sends POST notifications when payment status changes.
+
+#### Body Structure
+
+```json
+{
+  "type": "payment",
+  "data": {
+    "id": "1234567890"
+  }
+}
+```
+
+<ParamField body="type" type="string">
+  Notification type
+  
+  **Values:** `payment`, `merchant_order`, `pay`
+</ParamField>
+
+<ParamField body="data.id" type="string">
+  Payment ID to fetch details
+</ParamField>
+
+### Response
+
+```json
+{
+  "received": true
+}
+```
+
+<Note>
+Always return `200 OK` to acknowledge webhook receipt, even if processing fails.
+</Note>
+
+## Implementation Details
+
+### Creating Preference
+
+The function builds a Mercado Pago preference object:
+
+```typescript
+const preference = {
+  items: [{
+    title: `Pack ${pack_name} - ${credits} Créditos`,
+    unit_price: Number(price),
+    quantity: 1,
+    currency_id: "ARS"
+  }],
+  external_reference: `${user_id}:${credits}`,
+  back_urls: {
+    success: redirect_url,
+    failure: redirect_url,
+    pending: redirect_url
+  },
+  auto_return: "approved",
+  notification_url: `https://${host}/functions/v1/mercadopago-payment?webhook=true`
+};
+
+const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(preference)
+});
+```
+
+**From source:** `supabase/functions/mercadopago-payment/index.ts:35-59`
+
+### External Reference Format
+
+The `external_reference` field stores metadata:
+
+```
+<user_id>:<credits>
+```
+
+**Example:**
+```
+550e8400-e29b-41d4-a716-446655440000:500
+```
+
+This is parsed in the webhook to credit the correct user.
+
+### Webhook Processing
+
+When a payment is approved:
+
+```typescript
+if (paymentData.status === "approved") {
+  const [userId, creditsToAdd] = paymentData.external_reference.split(":");
+  const creditsNum = parseInt(creditsToAdd);
+
+  // Check if already processed (idempotency)
+  const { data: existing } = await supabase
+    .from("payment_notifications")
+    .select("id")
+    .eq("mercadopago_id", id.toString())
+    .maybeSingle();
+
+  if (!existing) {
+    // Record notification
+    await supabase.from("payment_notifications").insert({
+      mercadopago_id: id.toString(),
+      data: paymentData,
+      status: "approved",
+      user_id: userId,
+      credits_added: creditsNum,
+      amount: paymentData.transaction_amount
+    });
+
+    // Add credits to user
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", userId)
+      .single();
+
+    await supabase
+      .from("profiles")
+      .update({ credits: (profile.credits || 0) + creditsNum })
+      .eq("id", userId);
+  }
+}
+```
+
+**From source:** `supabase/functions/mercadopago-payment/index.ts:95-128`
+
+### Idempotency
+
+Webhooks may be sent multiple times. The function checks `payment_notifications` table to prevent duplicate credits:
+
+```typescript
+const { data: existing } = await supabase
+  .from("payment_notifications")
+  .select("id")
+  .eq("mercadopago_id", id.toString())
+  .maybeSingle();
+
+if (!existing) {
+  // Process payment
+}
+```
+
+## Mercado Pago Setup
+
+### 1. Get Credentials
+
+1. Go to [Mercado Pago Developers](https://www.mercadopago.com.ar/developers)
+2. Navigate to **Your integrations** → **Credentials**
+3. Copy **Access Token** (Production or Test)
+
+### 2. Configure Webhook
+
+1. Go to **Your integrations** → **Webhooks**
+2. Click **Add webhook**
+3. Set URL: `https://<project-ref>.supabase.co/functions/v1/mercadopago-payment?webhook=true`
+4. Select events: `payment.created`, `payment.updated`
+5. Save
+
+### 3. Set Edge Function Secret
+
+```bash
+supabase secrets set MP_ACCESS_TOKEN=APP_USR-your-access-token-here
+```
+
+## Testing
+
+### Test Mode
+
+Use Mercado Pago test credentials:
+
+1. In Mercado Pago dashboard, switch to **Test mode**
+2. Use test access token in `MP_ACCESS_TOKEN`
+3. Use test cards from [Mercado Pago docs](https://www.mercadopago.com.ar/developers/es/guides/online-payments/checkout-api/testing)
+
+**Test card (always approved):**
+```
+Card: 5031 7557 3453 0604
+Expiry: 11/25
+CVV: 123
+Name: APRO
+```
+
+### Local Testing
+
+```bash
+# Serve function locally
+supabase functions serve mercadopago-payment --env-file .env.local
+
+# Test preference creation
+curl -i --location --request POST 'http://localhost:54321/functions/v1/mercadopago-payment' \
+  --header 'Authorization: Bearer <ANON_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "credits": 500,
+    "price": 2500,
+    "pack_name": "Test Pack"
+  }'
+```
+
+### Webhook Testing
+
+Use ngrok to expose local function:
+
+```bash
+# Start local functions
+supabase functions serve
+
+# In another terminal, expose port
+ngrok http 54321
+
+# Use ngrok URL in Mercado Pago webhook config
+https://abc123.ngrok.io/functions/v1/mercadopago-payment?webhook=true
+```
+
+## Environment Variables
+
+<ParamField path="SUPABASE_URL" type="string" required>
+  Auto-injected by Supabase
+</ParamField>
+
+<ParamField path="SUPABASE_SERVICE_ROLE_KEY" type="string" required>
+  Auto-injected by Supabase
+</ParamField>
+
+<ParamField path="MP_ACCESS_TOKEN" type="string" required>
+  Mercado Pago access token
+  
+  **Test:** `TEST-1234...`  
+  **Production:** `APP_USR-1234...`
+  
+  Set via: `supabase secrets set MP_ACCESS_TOKEN=your-token`
+</ParamField>
+
+## Error Handling
+
+<ResponseField name="invalid_client_id" type="string">
+  MP_ACCESS_TOKEN is invalid or expired
+  
+  **Solution:** Regenerate token in Mercado Pago dashboard
+</ResponseField>
+
+<ResponseField name="invalid_parameter" type="string">
+  Price or credits value is invalid
+  
+  **Solution:** Ensure price is positive number, credits is integer
+</ResponseField>
+
+<ResponseField name="unauthorized" type="string">
+  Access token doesn't have required permissions
+  
+  **Solution:** Use access token from "Credentials" page, not client ID
+</ResponseField>
+
+## Security Considerations
+
+<CardGroup cols={2}>
+  <Card title="Validate webhook origin" icon="shield-check">
+    Optionally verify webhook IP is from Mercado Pago
+  </Card>
+  
+  <Card title="Idempotency is critical" icon="check-double">
+    Always check `payment_notifications` before crediting
+  </Card>
+  
+  <Card title="Never trust external_reference" icon="exclamation-triangle">
+    Validate user_id exists before crediting
+  </Card>
+  
+  <Card title="Log all webhooks" icon="file-text">
+    Store full payload for debugging and auditing
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Mercado Pago Integration" icon="credit-card" href="/technical/mercadopago-integration">
+    Complete integration guide
+  </Card>
+  <Card title="Edge Functions" icon="function" href="/api/edge-functions">
+    General edge function docs
+  </Card>
+</CardGroup>

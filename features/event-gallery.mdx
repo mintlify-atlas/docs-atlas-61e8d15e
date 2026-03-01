@@ -1,0 +1,261 @@
+---
+title: 'Event Gallery'
+description: 'Browse, download, and share all photos from an event in one beautiful gallery'
+icon: 'images'
+---
+
+Every event automatically generates a public gallery showcasing all AI-generated photos. Perfect for post-event sharing and downloads.
+
+## Accessing the Gallery
+
+### Gallery Mode URL
+```
+https://cabina.creativa.lab/?event=your-event&mode=gallery
+```
+
+<Info>
+  Gallery mode is always accessible, even after the event ends. This allows guests to revisit and download their photos anytime.
+</Info>
+
+## Gallery Features
+
+### Photo Grid Display
+
+<CardGroup cols={2}>
+  <Card title="Responsive Grid" icon="grid">
+    Masonry layout adapts to screen size:
+    - Mobile: 1 column
+    - Tablet: 2 columns
+    - Desktop: 3-4 columns
+  </Card>
+  <Card title="Lazy Loading" icon="loader">
+    Images load as you scroll for optimal performance with hundreds of photos
+  </Card>
+  <Card title="Lightbox View" icon="maximize">
+    Click any photo for full-screen viewing with swipe navigation
+  </Card>
+  <Card title="Generation Info" icon="info">
+    Hover to see style name and generation timestamp
+  </Card>
+</CardGroup>
+
+### Filtering & Search
+
+**Filter by Style**:
+```javascript
+const filteredPhotos = photos.filter(photo => 
+  selectedStyle === 'all' || photo.style_id === selectedStyle
+);
+```
+
+**Filter by Date**:
+- All time
+- Today only
+- Last 7 days
+- Custom date range
+
+### Download Options
+
+<Tabs>
+  <Tab title="Individual Download">
+    Click download icon on any photo:
+    ```javascript
+    const handleDownload = async (photoUrl) => {
+      const response = await fetch(photoUrl);
+      const blob = await response.blob();
+      const filename = `creativa-photo-${Date.now()}.png`;
+      // Trigger download
+    };
+    ```
+  </Tab>
+  <Tab title="Bulk Download">
+    Download multiple photos as ZIP:
+    ```javascript
+    import JSZip from 'jszip';
+    
+    const zip = new JSZip();
+    selectedPhotos.forEach(photo => {
+      zip.file(`${photo.style_id}_${photo.id}.png`, fetch(photo.url).then(r => r.blob()));
+    });
+    const content = await zip.generateAsync({ type: 'blob' });
+    ```
+  </Tab>
+  <Tab title="Share Gallery Link">
+    Copy gallery URL to clipboard with styled share button
+  </Tab>
+</Tabs>
+
+## Gallery Statistics
+
+Displayed in gallery header:
+
+<ParamField path="total_photos" type="number">
+  Total number of generations in this event
+</ParamField>
+
+<ParamField path="unique_styles" type="number">
+  Count of different AI styles used
+</ParamField>
+
+<ParamField path="event_date" type="date">
+  Event start date or creation date
+</ParamField>
+
+<ParamField path="event_name" type="string">
+  Custom event title (e.g., "Boda de Ana y Juan")
+</ParamField>
+
+## Real-Time Updates
+
+Gallery updates automatically as new photos are generated:
+
+```javascript
+const channel = supabase
+  .channel(`event_gallery_${eventId}`)
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'generations',
+    filter: `event_id=eq.${eventId}`
+  }, (payload) => {
+    setPhotos(prev => [payload.new, ...prev]);
+  })
+  .subscribe();
+```
+
+<Note>
+  New photos appear at the top of the gallery instantly without page refresh.
+</Note>
+
+## Moderation Tools
+
+### Partner Access
+
+Event owners can moderate gallery content:
+
+<CardGroup cols={2}>
+  <Card title="Delete Photo" icon="trash">
+    Remove inappropriate or unwanted generations
+  </Card>
+  <Card title="Bulk Delete" icon="trash-2">
+    Select multiple photos for batch deletion
+  </Card>
+  <Card title="Hide Gallery" icon="eye-off">
+    Temporarily disable public gallery access
+  </Card>
+  <Card title="Featured Photos" icon="star">
+    Pin favorites to top of gallery (future)
+  </Card>
+</CardGroup>
+
+### Deletion Workflow
+
+<Steps>
+  <Step title="Select Photos">
+    Click checkbox on photo thumbnails
+  </Step>
+  <Step title="Delete Button Appears">
+    Floating action button shows selected count
+  </Step>
+  <Step title="Confirm Deletion">
+    Modal asks for confirmation
+  </Step>
+  <Step title="Permanent Removal">
+    Photos deleted from database and storage
+  </Step>
+</Steps>
+
+## Branded Gallery
+
+Gallery inherits event branding:
+
+```javascript
+const BrandedGallery = ({ eventConfig }) => {
+  const { logo_url, primary_color, event_name } = eventConfig.config;
+  
+  return (
+    <div>
+      {logo_url && <img src={logo_url} className="h-12" />}
+      <h1 style={{ color: primary_color }}>{event_name}</h1>
+      {/* Gallery grid */}
+    </div>
+  );
+};
+```
+
+## Social Sharing
+
+### Share Individual Photos
+
+Mobile-optimized sharing:
+```javascript
+await navigator.share({
+  files: [photoFile],
+  title: `Foto de ${eventName}`,
+  text: `¡Mira mi foto del evento ${eventName}!`
+});
+```
+
+### Share Gallery Link
+
+Copy-to-clipboard with toast notification:
+```javascript
+await navigator.clipboard.writeText(
+  `${window.location.origin}/?event=${eventSlug}&mode=gallery`
+);
+showToast('✅ Link copiado al portapapeles');
+```
+
+## Performance Optimizations
+
+<Tabs>
+  <Tab title="Image CDN">
+    Photos served from Supabase Storage CDN:
+    - Global edge network
+    - Automatic compression
+    - WebP conversion (future)
+  </Tab>
+  <Tab title="Pagination">
+    Load 20 photos at a time:
+    ```javascript
+    const { data } = await supabase
+      .from('generations')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+      .range(page * 20, (page + 1) * 20);
+    ```
+  </Tab>
+  <Tab title="Thumbnail Preview">
+    Low-res preview while full image loads:
+    ```javascript
+    <img 
+      src={photo.url} 
+      loading="lazy"
+      className="blur-sm transition-all"
+      onLoad={(e) => e.target.classList.remove('blur-sm')}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+## Analytics Integration
+
+Gallery tracks engagement:
+- View count per photo
+- Download count
+- Most popular styles
+- Peak usage times
+- Share rate
+
+## Privacy Settings
+
+<Warning>
+  Gallery is public by default. Anyone with the link can view all photos. Consider this when creating events with sensitive content.
+</Warning>
+
+### Future Privacy Options
+- Password-protected galleries
+- Guest approval workflow
+- Private photo flags
+- Expiration dates

@@ -1,80 +1,283 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with Creativa Labs Cabina in minutes
+icon: rocket
 ---
 
-## Get started in three steps
+Get your first AI-generated photo in under 5 minutes. This guide covers both user and developer quickstart paths.
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+<Tabs>
+  <Tab title="For Users">
+    ## Your first AI photo
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    <Steps>
+      <Step title="Create an account">
+        Visit the Creativa Labs Cabina app and sign up with your email or Google account.
+        
+        ```
+        https://app.metalab30.com
+        ```
+      </Step>
+      
+      <Step title="Purchase credits">
+        Navigate to the **Packs** section and purchase your first credit pack.
+        
+        - Starter pack: 3,000 credits
+        - Each photo generation costs 100 credits
+        - Secure payment via Mercado Pago
+        
+        <Info>New users often start with the 3,000 credit pack, which allows 30 photo generations.</Info>
+      </Step>
+      
+      <Step title="Choose a style">
+        Browse through 50+ AI styles organized by category:
+        
+        - **Series**: Breaking Bad, Peaky Blinders, John Wick
+        - **Sports**: Formula 1, Football, Basketball
+        - **Art**: Pixar, Anime, Comic Book
+        - **Fantasy**: Superhero, Magic, Cyberpunk
+        - **Fashion**: Magazine, Street Style, Haute Couture
+        
+        Select your favorite style to begin.
+      </Step>
+      
+      <Step title="Capture your photo">
+        - Click the camera icon to open the camera interface
+        - Position yourself in the frame
+        - Capture a clear, well-lit photo
+        - Review and confirm your image
+        
+        <Tip>For best results, use good lighting and center your face in the frame.</Tip>
+      </Step>
+      
+      <Step title="Generate and download">
+        Click **Generate** to process your photo with AI. The generation typically takes 30-60 seconds.
+        
+        Once complete:
+        - View your generated image in high quality
+        - Download to your device
+        - Share directly to social media
+        - Save to your personal gallery
+      </Step>
+    </Steps>
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    ## Next steps
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    <CardGroup cols={2}>
+      <Card title="Explore more styles" icon="palette" href="/features/ai-styles">
+        Discover all 50+ available styles and categories
+      </Card>
+      <Card title="View your gallery" icon="images" href="/guides/user/gallery">
+        Access and manage all your generated photos
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="For Developers">
+    ## Local development setup
+    
+    <Steps>
+      <Step title="Clone the repository">
+        <CodeGroup>
+        ```bash SSH
+        git clone git@github.com:MetalabSA/creativa-labs-cabina.git
+        cd creativa-labs-cabina
+        ```
+        
+        ```bash HTTPS
+        git clone https://github.com/MetalabSA/creativa-labs-cabina.git
+        cd creativa-labs-cabina
+        ```
+        </CodeGroup>
+      </Step>
+      
+      <Step title="Install dependencies">
+        <CodeGroup>
+        ```bash npm
+        npm install
+        ```
+        
+        ```bash yarn
+        yarn install
+        ```
+        
+        ```bash pnpm
+        pnpm install
+        ```
+        </CodeGroup>
+        
+        The project uses:
+        - React 19 + TypeScript
+        - Vite for build tooling
+        - Supabase for backend
+        - Tailwind CSS for styling
+      </Step>
+      
+      <Step title="Configure environment variables">
+        Create a `.env.local` file in the project root:
+        
+        ```bash .env.local
+        # Supabase Configuration
+        VITE_SUPABASE_URL=your_supabase_project_url
+        VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+        
+        # AI API (Kie.ai)
+        VITE_KIE_API_KEY=your_kie_api_key
+        
+        # Mercado Pago (Optional for testing)
+        VITE_MERCADOPAGO_PUBLIC_KEY=your_mp_public_key
+        ```
+        
+        <Warning>Never commit API keys to version control. Keep `.env.local` in your `.gitignore`.</Warning>
+        
+        See [Environment Variables](/technical/environment-variables) for complete configuration.
+      </Step>
+      
+      <Step title="Start development server">
+        ```bash
+        npm run dev
+        ```
+        
+        The app will start at `https://localhost:3000` (note: HTTPS is enabled by default for camera access).
+        
+        <Info>The development server uses a self-signed SSL certificate. Your browser may show a security warning - this is normal for local development.</Info>
+      </Step>
+      
+      <Step title="Make your first API call">
+        Test the AI generation API by capturing a photo and selecting a style.
+        
+        The generation flow:
+        1. User captures photo → Base64 encoded
+        2. Frontend calls Supabase Edge Function: `cabina-vision`
+        3. Edge function calls Kie.ai with prompt + image
+        4. Generated image uploaded to Supabase Storage
+        5. Record saved to `generations` table
+        6. User credits decremented atomically
+        
+        See the implementation in `src/App.tsx:handleSubmit()`.
+      </Step>
+    </Steps>
+    
+    ## Project structure
+    
+    ```
+    creativa-labs-cabina/
+    ├── src/
+    │   ├── App.tsx                 # Main application component
+    │   ├── components/
+    │   │   ├── dashboards/         # Master, Partner, Client dashboards
+    │   │   ├── kiosk/              # Guest experience components
+    │   │   └── shared/             # Reusable components
+    │   ├── lib/
+    │   │   ├── supabaseClient.ts   # Supabase initialization
+    │   │   └── constants.ts        # Styles, categories, packs
+    │   └── types.ts                # TypeScript definitions
+    ├── supabase/
+    │   ├── functions/
+    │   │   ├── cabina-vision/      # AI generation edge function
+    │   │   └── mercadopago-payment/ # Payment webhook
+    │   └── migrations/             # Database schema
+    └── vite.config.ts              # Build configuration
+    ```
+    
+    ## Next steps for developers
+    
+    <CardGroup cols={2}>
+      <Card title="Database Schema" icon="database" href="/technical/database-schema">
+        Understand the data model and relationships
+      </Card>
+      <Card title="API Reference" icon="code" href="/api/edge-functions">
+        Explore Supabase Edge Functions
+      </Card>
+      <Card title="Deployment Guide" icon="rocket" href="/technical/deployment">
+        Deploy to production
+      </Card>
+      <Card title="Architecture" icon="diagram-project" href="/architecture">
+        Deep dive into system design
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="For Partners">
+    ## Setting up your first event
+    
+    <Steps>
+      <Step title="Get partner access">
+        Contact the platform administrator to create your partner account. You'll receive:
+        
+        - Partner dashboard login credentials
+        - Initial credit allocation
+        - White-label configuration access
+      </Step>
+      
+      <Step title="Configure your branding">
+        Access your Partner Dashboard and customize:
+        
+        - Company logo
+        - Primary brand color
+        - Contact information
+        - Available style packs for your clients
+        
+        See [White-Label Setup](/guides/partner/white-label) for details.
+      </Step>
+      
+      <Step title="Purchase credits">
+        Buy credits in bulk for your events:
+        
+        - Standard rate: Partner pricing (contact admin)
+        - Credits are allocated to your partner wallet
+        - Distribute credits across multiple events
+        
+        See [Managing Credits](/guides/partner/managing-credits).
+      </Step>
+      
+      <Step title="Create your first event">
+        In the Partner Dashboard:
+        
+        1. Click **Create Event**
+        2. Enter event details (name, date, client info)
+        3. Allocate credits from your wallet
+        4. Select available styles for guests
+        5. Configure event branding (optional)
+        6. Generate QR code
+        
+        <Info>Events can be created in advance and activated closer to the event date.</Info>
+      </Step>
+      
+      <Step title="Share with guests">
+        Distribute the event QR code:
+        
+        - Print for physical placement at venue
+        - Share link via WhatsApp/email
+        - Display on event screens
+        
+        Guests scan the QR code to access a zero-friction photo booth experience - no login required.
+      </Step>
+    </Steps>
+    
+    ## Partner resources
+    
+    <CardGroup cols={2}>
+      <Card title="Creating Events" icon="calendar" href="/guides/partner/creating-events">
+        Complete event creation workflow
+      </Card>
+      <Card title="Credit Management" icon="wallet" href="/guides/partner/managing-credits">
+        Optimize your credit allocation
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Need help?
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+<CardGroup cols={3}>
+  <Card title="User Guides" icon="book-open" href="/guides/user/getting-started">
+    Step-by-step tutorials for end users
+  </Card>
+  <Card title="Technical Docs" icon="code" href="/technical/installation">
+    Developer documentation and API reference
+  </Card>
+  <Card title="Core Concepts" icon="lightbulb" href="/concepts/business-models">
+    Understand how the platform works
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

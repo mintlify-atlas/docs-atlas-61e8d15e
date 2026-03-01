@@ -1,0 +1,334 @@
+---
+title: 'Pricing Tiers'
+description: 'Flexible pricing for consumers, partners, and enterprise clients'
+icon: 'tag'
+---
+
+Cabina offers tiered pricing for different user types: individual consumers (B2C), photo booth partners, and enterprise clients.
+
+## B2C Pricing
+
+### Free Tier
+
+<Card title="Free Trial" icon="gift">
+  **500 Credits Included**
+  - 5 AI photo generations
+  - Access to all free styles
+  - No credit card required
+  - 2 generations per day limit
+</Card>
+
+### Credit Packs
+
+<CardGroup cols={3}>
+  <Card title="Starter Pack" icon="zap">
+    **$5 USD**
+    - 1,000 credits
+    - 10 AI generations
+    - Access to free styles
+  </Card>
+  <Card title="Popular Pack" icon="star">
+    **$20 USD**
+    - 5,000 credits
+    - 50 AI generations
+    - **20% bonus credits**
+    - Recommended for regular users
+  </Card>
+  <Card title="Pro Pack" icon="crown">
+    **$50 USD**
+    - 15,000 credits
+    - 150 AI generations
+    - **50% bonus credits**
+    - Best value
+  </Card>
+</CardGroup>
+
+### Premium Style Packs
+
+One-time unlock for exclusive style collections:
+
+<ParamField path="premium_pack" type="number" default="3000">
+  **3,000 credits** per pack (~$15 USD value)
+</ParamField>
+
+Available packs:
+- **John Wick** (8 styles)
+- **Superhéroes** (7 styles)
+- **Peaky Blinders** (4 styles)
+- **Formula 1** (4 styles)
+
+<Info>
+  Premium packs unlock permanently - pay once, use forever.
+</Info>
+
+## Partner Pricing
+
+### Partner Accounts
+
+Photo booth businesses can create partner accounts to:
+- Manage unlimited events
+- Create client sub-accounts
+- Purchase credits in bulk
+- White-label branding
+
+### Credit Wholesale
+
+<CardGroup cols={2}>
+  <Card title="Starter" icon="briefcase">
+    **1,000 credits**
+    Contact for pricing
+    Minimum partner order
+  </Card>
+  <Card title="Business" icon="building">
+    **10,000+ credits**
+    Volume discount
+    Dedicated support
+  </Card>
+  <Card title="Enterprise" icon="building-columns">
+    **50,000+ credits**
+    Custom pricing
+    White-label options
+  </Card>
+</CardGroup>
+
+### Commission Structure
+
+<ParamField path="platform_commission" type="number" default="0.30">
+  **30% platform fee** on partner event revenue (future)
+</ParamField>
+
+<Note>
+  Currently, partners purchase credits upfront. Future revenue-sharing model planned for partner-created paid events.
+</Note>
+
+### Partner Benefits
+
+<Tabs>
+  <Tab title="Unlimited Events">
+    Create as many events as needed with purchased credits
+  </Tab>
+  <Tab title="Client Management">
+    Add sub-accounts with credit allocations
+  </Tab>
+  <Tab title="Custom Branding">
+    Logo, colors, and welcome text per event
+  </Tab>
+  <Tab title="Analytics">
+    Detailed event performance metrics
+  </Tab>
+  <Tab title="QR Codes">
+    Instant generation for guest access
+  </Tab>
+  <Tab title="Priority Support">
+    Dedicated partner assistance
+  </Tab>
+</Tabs>
+
+## Enterprise Pricing
+
+### Custom Solutions
+
+For large organizations needing:
+- Custom AI model training
+- Dedicated infrastructure
+- SLA guarantees
+- Custom integrations
+- On-premise deployment
+
+<Warning>
+  Enterprise pricing is custom-quoted. Contact sales for a proposal.
+</Warning>
+
+### Enterprise Features
+
+<CardGroup cols={2}>
+  <Card title="Custom Models" icon="cpu">
+    Train AI on your brand assets
+  </Card>
+  <Card title="SSO Integration" icon="key">
+    SAML/OAuth authentication
+  </Card>
+  <Card title="API Access" icon="code">
+    Programmatic event creation
+  </Card>
+  <Card title="Dedicated Support" icon="headphones">
+    24/7 technical assistance
+  </Card>
+  <Card title="Custom Styles" icon="palette">
+    Exclusive AI styles for your brand
+  </Card>
+  <Card title="Unlimited Generations" icon="infinity">
+    No credit limits
+  </Card>
+</CardGroup>
+
+## Pricing Comparison
+
+| Feature | Free | B2C | Partner | Enterprise |
+|---------|------|-----|---------|------------|
+| AI Generations | 5 | Unlimited* | Unlimited* | Unlimited |
+| Free Styles | ✓ | ✓ | ✓ | ✓ |
+| Premium Styles | ✗ | ✓ | ✓ | ✓ |
+| Events | ✗ | ✗ | ✓ | ✓ |
+| Custom Branding | ✗ | ✗ | ✓ | ✓ |
+| Client Accounts | ✗ | ✗ | ✓ | ✓ |
+| Analytics | Basic | Basic | Advanced | Enterprise |
+| Support | Community | Email | Priority | Dedicated |
+| Custom Models | ✗ | ✗ | ✗ | ✓ |
+| API Access | ✗ | ✗ | ✗ | ✓ |
+
+*With credit purchase
+
+## Regional Pricing
+
+### Currency Support
+
+Pricing in local currencies:
+
+<Tabs>
+  <Tab title="Argentina (ARS)">
+    - Starter: $2,000 ARS
+    - Popular: $8,000 ARS
+    - Pro: $20,000 ARS
+  </Tab>
+  <Tab title="Mexico (MXN)">
+    - Starter: $100 MXN
+    - Popular: $400 MXN
+    - Pro: $1,000 MXN
+  </Tab>
+  <Tab title="International (USD)">
+    - Starter: $5 USD
+    - Popular: $20 USD
+    - Pro: $50 USD
+  </Tab>
+</Tabs>
+
+### Payment Methods by Region
+
+**Latin America**:
+- Credit/debit cards
+- Bank transfers
+- Cash payments (Rapipago, Pago Fácil)
+- Digital wallets (Mercado Pago)
+
+**International**:
+- Stripe (coming soon)
+- PayPal (coming soon)
+
+## Discounts & Promotions
+
+### Volume Discounts
+
+Automatic bonus credits on larger packs:
+
+```javascript
+const bonusCredits = {
+  1000: 0,      // 0% bonus
+  5000: 1000,   // 20% bonus
+  15000: 7500   // 50% bonus
+};
+```
+
+### Promotional Codes
+
+Support for discount codes (future):
+```javascript
+interface PromoCode {
+  code: string;           // 'LAUNCH2026'
+  discount: number;       // 0.20 for 20% off
+  credits_bonus: number;  // Bonus credits added
+  valid_until: date;
+  max_uses: number;
+}
+```
+
+### Referral Program (Future)
+
+<Info>
+  Planned: Earn 500 credits for each friend who signs up and makes their first purchase.
+</Info>
+
+## Subscription Plans (Future)
+
+### Recurring Credits
+
+Monthly subscription for regular users:
+
+<CardGroup cols={3}>
+  <Card title="Casual" icon="coffee">
+    **$10/month**
+    - 2,500 credits monthly
+    - Access to all styles
+    - Cancel anytime
+  </Card>
+  <Card title="Creator" icon="camera">
+    **$25/month**
+    - 7,500 credits monthly
+    - Priority generation queue
+    - Early access to new styles
+  </Card>
+  <Card title="Professional" icon="briefcase">
+    **$50/month**
+    - 20,000 credits monthly
+    - Unlimited premium unlocks
+    - Custom watermark removal
+  </Card>
+</CardGroup>
+
+## Fair Use Policy
+
+### Daily Limits
+
+Free tier restrictions:
+- **2 generations per day** for free users
+- **Unlimited** for paid users
+- Resets at 00:00 UTC
+
+### Abuse Prevention
+
+<Warning>
+  Automated scraping, bulk generation, or resale of AI photos is prohibited and may result in account suspension.
+</Warning>
+
+### Credit Expiration
+
+<Info>
+  Purchased credits never expire. Free trial credits expire after 30 days of inactivity.
+</Info>
+
+## Refund Policy
+
+### Credit Purchases
+
+- **7-day window**: Full refund if no credits used
+- **Partial refunds**: Proportional refund for unused credits
+- **No refunds**: After 30 days or if >50% credits used
+
+### Premium Packs
+
+<Warning>
+  Premium style pack unlocks are non-refundable. Preview styles before purchasing.
+</Warning>
+
+## Pricing Calculator
+
+Estimate costs for your use case:
+
+```javascript
+const calculateCost = (generations: number) => {
+  const creditsNeeded = generations * 100;
+  
+  if (creditsNeeded <= 500) return 0;  // Free tier
+  if (creditsNeeded <= 1000) return 5;
+  if (creditsNeeded <= 5000) return 20;
+  if (creditsNeeded <= 15000) return 50;
+  
+  // Bulk pricing for large volumes
+  return Math.ceil(creditsNeeded / 1000) * 5;
+};
+```
+
+**Examples**:
+- 50 photos for event = 5,000 credits = $20 USD
+- 200 photos for wedding = 20,000 credits = $65 USD (with bonus)
+- 500 photos for conference = Contact for partner pricing

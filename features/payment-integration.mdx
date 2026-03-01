@@ -1,0 +1,390 @@
+---
+title: 'Payment Integration'
+description: 'MercadoPago integration for secure credit purchases in Latin America'
+icon: 'credit-card'
+---
+
+Cabina uses MercadoPago for payment processing, providing secure checkout with multiple payment methods popular in Latin America.
+
+## MercadoPago Setup
+
+### Edge Function Integration
+
+Payments processed via `mercadopago-payment` Edge Function:
+
+```typescript
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import MercadoPago from 'mercadopago';
+
+serve(async (req) => {
+  const { user_id, credits, price, pack_name, redirect_url } = await req.json();
+  
+  // Initialize MercadoPago
+  mercadopago.configure({
+    access_token: Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+  });
+  
+  // Create payment preference
+  const preference = await mercadopago.preferences.create({
+    items: [{
+      title: `${pack_name} - ${credits} Créditos`,
+      unit_price: price,
+      quantity: 1
+    }],
+    back_urls: {
+      success: `${redirect_url}?payment=success`,
+      failure: `${redirect_url}?payment=failure`,
+      pending: `${redirect_url}?payment=pending`
+    },
+    notification_url: `${redirect_url}/api/mercadopago-webhook`,
+    metadata: {
+      user_id,
+      credits,
+      pack_name
+    }
+  });
+  
+  return new Response(
+    JSON.stringify({ init_point: preference.init_point }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+});
+```
+
+### Environment Variables
+
+<ParamField path="MERCADOPAGO_ACCESS_TOKEN" type="string" required>
+  MercadoPago API access token (production or sandbox)
+</ParamField>
+
+<ParamField path="MERCADOPAGO_PUBLIC_KEY" type="string" required>
+  Client-side public key for payment forms
+</ParamField>
+
+<ParamField path="MERCADOPAGO_WEBHOOK_SECRET" type="string" required>
+  Secret for validating webhook signatures
+</ParamField>
+
+## Payment Flow
+
+<Steps>
+  <Step title="Select Credit Pack">
+    User chooses pack from pricing page
+  </Step>
+  <Step title="Invoke Edge Function">
+    ```javascript
+    const { data } = await supabase.functions.invoke('mercadopago-payment', {
+      body: {
+        user_id: session.user.id,
+        credits: pack.credits,
+        price: pack.price,
+        pack_name: pack.name,
+        redirect_url: window.location.origin
+      }
+    });
+    ```
+  </Step>
+  <Step title="Redirect to MercadoPago">
+    ```javascript
+    window.location.href = data.init_point;
+    ```
+  </Step>
+  <Step title="Complete Payment">
+    User pays via:
+    - Credit/debit card
+    - Bank transfer
+    - Cash (Rapipago, Pago Fácil)
+    - Digital wallets
+  </Step>
+  <Step title="Return to Platform">
+    MercadoPago redirects to success/failure URL
+  </Step>
+  <Step title="Webhook Notification">
+    Platform receives payment confirmation
+  </Step>
+  <Step title="Credits Added">
+    User balance updated automatically
+  </Step>
+</Steps>
+
+## Webhook Handler
+
+### Webhook Edge Function
+
+```typescript
+serve(async (req) => {
+  const body = await req.json();
+  
+  // Validate webhook signature
+  const signature = req.headers.get('x-signature');
+  if (!validateSignature(signature, body)) {
+    return new Response('Invalid signature', { status: 401 });
+  }
+  
+  // Get payment details
+  const paymentId = body.data.id;
+  const payment = await mercadopago.payment.get(paymentId);
+  
+  // Only process approved payments
+  if (payment.status !== 'approved') {
+    return new Response('Payment not approved', { status: 200 });
+  }
+  
+  // Extract metadata
+  const { user_id, credits } = payment.metadata;
+  
+  // Add credits to user
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      credits: supabase.raw(`credits + ${credits}`) 
+    })
+    .eq('id', user_id);
+  
+  // Log transaction
+  await supabase.from('transactions').insert({
+    user_id,
+    amount: credits,
+    type: 'purchase',
+    payment_id: paymentId,
+    details: {
+      method: payment.payment_method_id,
+      price: payment.transaction_amount,
+      currency: payment.currency_id
+    }
+  });
+  
+  return new Response('OK', { status: 200 });
+});
+```
+
+### Webhook Events
+
+MercadoPago sends notifications for:
+
+<Tabs>
+  <Tab title="payment.created">
+    Payment initiated, not yet processed
+  </Tab>
+  <Tab title="payment.updated">
+    Payment status changed (approved, rejected, pending)
+  </Tab>
+  <Tab title="payment.refunded">
+    Payment refunded (handle credit reversal)
+  </Tab>
+</Tabs>
+
+## Payment Methods
+
+### Supported in Argentina
+
+<CardGroup cols={2}>
+  <Card title="Credit Cards" icon="credit-card">
+    Visa, Mastercard, American Express, Cabal, Naranja
+  </Card>
+  <Card title="Debit Cards" icon="credit-card">
+    Visa Débito, Maestro, Cabal Débito
+  </Card>
+  <Card title="Bank Transfer" icon="building-columns">
+    Direct bank debits (CBU/CVU)
+  </Card>
+  <Card title="Cash" icon="money-bill">
+    Rapipago, Pago Fácil, Provincia NET
+  </Card>
+  <Card title="Digital Wallets" icon="wallet">
+    Mercado Pago account balance
+  </Card>
+  <Card title="Installments" icon="calendar">
+    Up to 12 monthly payments (varies by card)
+  </Card>
+</CardGroup>
+
+## Payment States
+
+### Status Handling
+
+```javascript
+const handlePaymentReturn = () => {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('payment');
+  
+  switch (status) {
+    case 'success':
+      showToast('✅ Pago aprobado. Créditos agregados.', 'success');
+      fetchProfile(); // Refresh credit balance
+      break;
+    
+    case 'pending':
+      showToast('⏳ Pago pendiente. Te avisaremos cuando se apruebe.', 'info');
+      break;
+    
+    case 'failure':
+      showToast('❌ Pago rechazado. Intenta nuevamente.', 'error');
+      break;
+  }
+};
+```
+
+### Pending Payments
+
+Some methods (cash, bank transfer) process asynchronously:
+
+<Info>
+  Pending payments show in user's transaction history. Credits added automatically when MercadoPago confirms payment.
+</Info>
+
+## Error Handling
+
+### Common Errors
+
+<Tabs>
+  <Tab title="Insufficient Funds">
+    ```javascript
+    if (payment.status === 'rejected' && payment.status_detail === 'cc_rejected_insufficient_amount') {
+      return 'Fondos insuficientes en la tarjeta';
+    }
+    ```
+  </Tab>
+  <Tab title="Invalid Card">
+    ```javascript
+    if (payment.status_detail === 'cc_rejected_bad_filled_card_number') {
+      return 'Número de tarjeta inválido';
+    }
+    ```
+  </Tab>
+  <Tab title="Security Code">
+    ```javascript
+    if (payment.status_detail === 'cc_rejected_bad_filled_security_code') {
+      return 'Código de seguridad incorrecto';
+    }
+    ```
+  </Tab>
+  <Tab title="Expired Card">
+    ```javascript
+    if (payment.status_detail === 'cc_rejected_bad_filled_date') {
+      return 'Fecha de vencimiento inválida';
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Retry Logic
+
+Allow users to retry failed payments:
+```javascript
+const handleRetryPayment = async () => {
+  // Clear previous error state
+  setErrorMessage(null);
+  
+  // Reinitiate payment flow
+  await handlePayment(previousPack);
+};
+```
+
+## Security
+
+### PCI Compliance
+
+<Warning>
+  Never store credit card details. MercadoPago handles all sensitive payment data.
+</Warning>
+
+### Webhook Validation
+
+```typescript
+const validateSignature = (signature: string, body: any): boolean => {
+  const crypto = require('crypto');
+  const secret = Deno.env.get('MERCADOPAGO_WEBHOOK_SECRET');
+  
+  const hash = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(body))
+    .digest('hex');
+  
+  return hash === signature;
+};
+```
+
+### Duplicate Payment Prevention
+
+```javascript
+// Check if payment already processed
+const { data: existing } = await supabase
+  .from('transactions')
+  .select('id')
+  .eq('payment_id', paymentId)
+  .single();
+
+if (existing) {
+  return new Response('Already processed', { status: 200 });
+}
+```
+
+## Testing
+
+### Sandbox Mode
+
+Use test credentials for development:
+
+```bash
+# Sandbox access token
+MERCADOPAGO_ACCESS_TOKEN=TEST-xxxxxxxxxxxx
+
+# Sandbox public key  
+MERCADOPAGO_PUBLIC_KEY=TEST-xxxxxxxxxxxx
+```
+
+### Test Cards
+
+<CardGroup cols={2}>
+  <Card title="Approved Payment">
+    **Card**: 5031 7557 3453 0604
+    **CVV**: 123
+    **Expiry**: 11/25
+  </Card>
+  <Card title="Rejected Payment">
+    **Card**: 5031 4332 1540 6351
+    **CVV**: 123
+    **Expiry**: 11/25
+  </Card>
+</CardGroup>
+
+### Webhook Testing
+
+Use ngrok for local webhook testing:
+```bash
+ngrok http 54321
+
+# Set webhook URL in MercadoPago
+https://your-ngrok-url.ngrok.io/functions/v1/mercadopago-webhook
+```
+
+## Transaction Logging
+
+All payments logged for audit:
+
+```typescript
+interface Transaction {
+  id: string;
+  user_id: string;
+  amount: number;           // Credits purchased
+  type: 'purchase';
+  payment_id: string;       // MercadoPago payment ID
+  details: {
+    method: string;         // 'visa', 'master', 'rapipago', etc.
+    price: number;          // Amount in currency
+    currency: string;       // 'ARS', 'USD', etc.
+    installments: number;   // Payment plan
+  };
+  created_at: timestamp;
+}
+```
+
+View in admin dashboard:
+```javascript
+const { data } = await supabase
+  .from('transactions')
+  .select('*, profiles(full_name, email)')
+  .eq('type', 'purchase')
+  .order('created_at', { ascending: false });
+```

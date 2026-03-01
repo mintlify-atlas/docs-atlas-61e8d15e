@@ -1,0 +1,427 @@
+---
+title: QR Codes & Event Access
+description: Generate, download, print, and distribute QR codes for easy event access
+---
+
+## QR Code Overview
+
+QR codes provide a simple way for event guests to access your Cabina photo booth instantly by scanning with their smartphone cameras.
+
+## How QR Codes Work
+
+<Steps>
+  <Step title="Guest Scans QR Code">
+    Using their phone's camera app or QR scanner.
+  </Step>
+  
+  <Step title="Redirects to Event URL">
+    QR code contains your event's unique URL:
+    `app.metalabia.com/?event=[your-event-slug]`
+  </Step>
+  
+  <Step title="Event Kiosk Loads">
+    Guest sees your branded photo booth interface immediately.
+  </Step>
+  
+  <Step title="Guest Generates Photo">
+    Selects style, takes photo, generates AI image.
+  </Step>
+</Steps>
+
+<Info>
+**No App Install Required:** Guests don't need to download any app. The web-based kiosk works directly in their mobile browser.
+</Info>
+
+## Getting Your QR Code
+
+### Partner Generates QR Codes
+
+<Note>
+**Important:** Event Organizers (you) cannot generate QR codes directly. Your partner creates them for you.
+</Note>
+
+**To Get Your QR Code:**
+
+<Steps>
+  <Step title="Contact Your Partner">
+    Email or call your partner and request QR code.
+  </Step>
+  
+  <Step title="Partner Generates in Dashboard">
+    Partner accesses their dashboard, clicks on your event, and generates the QR code.
+  </Step>
+  
+  <Step title="Partner Sends QR File">
+    Partner downloads the QR image and sends it to you via email or file sharing.
+  </Step>
+</Steps>
+
+### What's Included in QR Design
+
+The generated QR code includes:
+
+- **Event Name**: Your event title at the top
+- **Custom Text**: "📸 Escaneá y creá tu foto con IA"
+- **QR Code**: Scannable code in center (white background)
+- **Event Logo**: Your custom logo or partner logo (if configured)
+- **Brand Color**: Accent color from branding settings
+- **Footer**: "Powered by MetaLab IA • metalab30.com"
+
+**File Details:**
+- **Format**: PNG image
+- **Dimensions**: 520px × ~700px (optimized for print and digital)
+- **Resolution**: High-res for printing
+- **Filename**: `qr-[event-slug].png`
+
+## Partner QR Generation Process
+
+<Info>
+**For Partners:** Here's how to generate QR codes for your client's event.
+</Info>
+
+### Using EventQRGenerator Component
+
+If your partner uses the `EventQRGenerator.tsx` component:
+
+<Steps>
+  <Step title="Open Event Details">
+    Partner clicks on event in dashboard or events table.
+  </Step>
+  
+  <Step title="Click QR Code Button">
+    Looks for QR Code icon button (typically in event actions).
+  </Step>
+  
+  <Step title="QR Modal Opens">
+    Full-screen modal displays:
+    - Event name
+    - QR code preview
+    - Event URL
+    - Download and Print buttons
+  </Step>
+  
+  <Step title="Download QR">
+    - Click **"Descargar"** (Download) button
+    - Branded PNG file downloads with QR, logo, and event details
+    - High-resolution (400x400px QR + padding)
+  </Step>
+  
+  <Step title="Send to Client">
+    Partner emails or shares file with you (the Event Organizer).
+  </Step>
+</Steps>
+
+### QR Customization
+
+The QR design automatically includes:
+- Your event branding (logo, color)
+- Event name from settings
+- Cabina logo embedded in QR center (for brand recognition)
+
+## Printing QR Codes
+
+### Print Specifications
+
+**Recommended Print Sizes:**
+- **Small (Flyers, Cards)**: 3" × 4" minimum
+- **Medium (Table Tents)**: 5" × 7"
+- **Large (Posters, Signage)**: 8" × 11" or 11" × 17"
+
+**Print Quality:**
+- Use high-quality printer (300 DPI+)
+- Print on matte or semi-gloss cardstock
+- Ensure QR code is sharp and clear
+- Test scan before mass printing
+
+<Warning>
+**Always Test:** Print one copy first and scan with multiple phones to ensure it works before printing hundreds.
+</Warning>
+
+### Print Formats
+
+#### Table Tents
+
+**Use Case:** Place on guest tables at receptions
+
+**Setup:**
+1. Print QR on cardstock (8.5" × 5.5" folded in half)
+2. Add text: "Scan to create your AI photo!"
+3. Place on each table
+
+**Quantity Needed:**
+- 1 per table (or 1 per 2 tables for large venues)
+
+#### Posters
+
+**Use Case:** Entry points, photo booth area
+
+**Setup:**
+1. Print on 11" × 17" poster paper
+2. Include instructions: "1. Scan QR, 2. Choose Style, 3. Take Selfie"
+3. Mount on easel or wall
+
+**Quantity Needed:**
+- 2-4 posters (entrance, bar, photo area, exit)
+
+#### Handheld Cards
+
+**Use Case:** Roaming staff to encourage participation
+
+**Setup:**
+1. Print on business card size (3.5" × 2" or 4" × 3")
+2. Laminate for durability
+3. Give to event staff/volunteers
+
+**Quantity Needed:**
+- 5-10 cards for staff
+
+### Professional Printing Services
+
+For large or high-profile events:
+
+- **Vistaprint**: Upload PNG, order table tents or posters
+- **Local Print Shops**: Higher quality, faster turnaround
+- **Online Services**: Moo, GotPrint, Printful
+
+**Tips:**
+- Provide high-res PNG file
+- Request proof before full run
+- Order 10% extra for backups
+
+## Placement Strategies
+
+### High-Traffic Areas
+
+✅ **Best Locations:**
+- **Entrance/Registration**: First thing guests see
+- **Guest Tables**: Guests sitting have time to scan
+- **Bar Area**: While waiting for drinks
+- **Photo Booth Zone**: Dedicated area with instructions
+- **Restroom Entrance**: Captive audience while waiting
+
+❌ **Avoid:**
+- Dance floor (too chaotic)
+- Dark corners (scanning issues)
+- Behind obstacles
+- Too high or too low (eye level is best)
+
+### Venue-Specific Tips
+
+**Weddings:**
+- Table tents on each guest table
+- Poster at entrance
+- Card in favor bags
+
+**Corporate Events:**
+- Poster at registration desk
+- Flyers in welcome packets
+- Digital slide in presentation deck
+
+**Conferences:**
+- QR on name badge lanyards
+- Poster at booth
+- Slide in speaker presentations
+
+**Festivals/Outdoor:**
+- Large banners at multiple entry points
+- Staff with handheld cards
+- Projected on screens
+
+## Digital Distribution
+
+Beyond printing, share QR codes digitally:
+
+### Email Invitations
+
+<Steps>
+  <Step title="Get QR PNG File">
+    Download from your partner.
+  </Step>
+  
+  <Step title="Embed in Email">
+    Insert image in pre-event email or invitation:
+    - "Get ready for [Event Name]! Scan this QR code at the event to create your AI photo."
+  </Step>
+  
+  <Step title="Include Direct Link Too">
+    Some email clients don't display images well, so include text link:
+    `app.metalabia.com/?event=[your-slug]`
+  </Step>
+</Steps>
+
+### Social Media
+
+- Post QR image on Instagram Stories with "Swipe Up" (if available)
+- Share on Facebook event page
+- Tweet QR before/during event
+- Add to LinkedIn event posts
+
+### Event Websites
+
+- Add QR image to event landing page
+- Include in FAQ or "How It Works" section
+- Provide download link for guests to save
+
+### Presentation Slides
+
+For conferences or corporate events:
+
+- Include QR on last slide of presentations
+- Display on loop during breaks
+- Project on screens during networking
+
+## Using Direct URL Instead of QR
+
+If QR codes aren't feasible, share the direct URL:
+
+**Your Event URL:**
+```
+app.metalabia.com/?event=[your-event-slug]
+```
+
+**Where to Use:**
+- Text messages to guests
+- Social media posts
+- Email signatures
+- Verbal announcements ("Visit app dot metalabia dot com slash events slash [slug]")
+
+**Pros of URL:**
+- Works in all contexts (digital and verbal)
+- Can be bookmarked
+- Easy to type
+
+**Cons of URL:**
+- Longer than scanning QR
+- Risk of typos
+- Less immediate than scan
+
+<Info>
+**Best Practice:** Use QR codes for in-person events, and direct URLs for digital promotion.
+</Info>
+
+## Encouraging Participation
+
+### Signage Language
+
+**Effective Call-to-Actions:**
+- 📸 "Scan to create your AI photo!"
+- ✨ "Transform your selfie with AI – Scan now"
+- 🎉 "Free AI photos! Scan the QR code"
+- 💥 "Become art – Scan and generate"
+
+**Include Instructions:**
+1. Scan QR code
+2. Choose your style
+3. Take a selfie
+4. Download your AI photo
+
+### Incentivize Scanning
+
+- **Contest**: "Best AI photo wins a prize!"
+- **Social Sharing**: "Share your photo with #EventHashtag"
+- **First X Guests**: "First 50 to scan get a gift"
+- **Photo Wall**: Display generated photos on screen in real-time
+
+### Staff Assistance
+
+- Train 1-2 staff members on the process
+- Have them demonstrate first generation
+- Roam with handheld QR cards
+- Answer guest questions
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="QR code won't scan">
+    **Possible Causes:**
+    - Print quality too low (blurry QR)
+    - QR code too small
+    - Poor lighting at venue
+    - Guest's camera not focused
+    
+    **Solutions:**
+    - Reprint at higher resolution
+    - Increase QR size (at least 3" × 3")
+    - Add lighting to QR display area
+    - Instruct guests to tap screen to focus before scanning
+  </Accordion>
+  
+  <Accordion title="QR scans but shows error">
+    **Check:**
+    - Does the URL in QR match your event slug?
+    - Is event active (not paused by partner)?
+    - Does event have credits remaining?
+    
+    **Solutions:**
+    - Verify QR points to correct URL (ask partner)
+    - Have partner check event status
+    - Top up credits if needed
+  </Accordion>
+  
+  <Accordion title="Guests can't access URL after scan">
+    **Causes:**
+    - Venue WiFi issues
+    - Mobile data connectivity
+    - Event URL malformed
+    
+    **Solutions:**
+    - Ensure venue has strong WiFi (provide password)
+    - Test with multiple phones in different areas
+    - Share direct URL as backup
+  </Accordion>
+  
+  <Accordion title="QR design doesn't show my branding">
+    **Cause:**
+    Partner generated QR before you updated branding in dashboard.
+    
+    **Solution:**
+    - Update branding in your dashboard and save
+    - Ask partner to regenerate QR code
+    - New download includes updated logo/colors
+  </Accordion>
+  
+  <Accordion title="Need QR code urgently but partner unavailable">
+    **Workaround:**
+    Use free QR generator online:
+    1. Go to qr-code-generator.com or similar
+    2. Enter your event URL: `app.metalabia.com/?event=[slug]`
+    3. Generate and download
+    4. Won't have custom branding but will work
+    
+    **Note:** For official/branded version, still request from partner later.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Before Event
+- 📝 Request QR code from partner at least 5 days before event
+- 🖨️ Print test copy and scan with 3+ different phones
+- 📍 Plan placement locations in advance
+- 👥 Brief staff on how to demonstrate
+
+### During Event
+- 👀 Monitor guest engagement (are they scanning?)
+- 👮‍♀️ Have backup QR codes printed (in case of damage)
+- 📱 Keep direct URL handy for guests who can't scan
+- 📢 Announce QR location periodically
+
+### After Event
+- 📊 Track how many guests used the booth (via gallery)
+- 📝 Note what worked (placement, signage)
+- ♻️ Save QR files for future reference
+- 💬 Share feedback with partner
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Event Setup" icon="settings" href="/guides/organizer/event-setup">
+    Configure event branding and settings
+  </Card>
+  <Card title="Live Gallery" icon="images" href="/guides/organizer/live-gallery">
+    Monitor photos as they're generated
+  </Card>
+  <Card title="Configure Styles" icon="palette" href="/guides/organizer/configuring-styles">
+    Understand available AI styles
+  </Card>
+</CardGroup>

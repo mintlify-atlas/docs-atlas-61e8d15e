@@ -1,0 +1,560 @@
+---
+title: AI Style Management
+description: Create, configure, and manage AI style identities and prompts across the platform
+---
+
+## Style Management Overview
+
+As a Master Administrator, you control the AI style catalog available to all partners and users. This includes:
+
+- Creating new AI styles (identities)
+- Editing style prompts and metadata
+- Uploading style preview images
+- Organizing styles into categories/packs
+- Toggling active/inactive status
+- Tracking style usage and popularity
+
+## Accessing Style Manager
+
+<Steps>
+  <Step title="Navigate to Styles Tab">
+    From your Admin Dashboard, click **"Styles"** in the main navigation.
+  </Step>
+  
+  <Step title="Style Manager Loads">
+    You'll see:
+    - Total style count in header
+    - Search bar
+    - Category filter pills
+    - Subcategory buttons (if category selected)
+    - Grid of style cards
+  </Step>
+</Steps>
+
+## Understanding Style Structure
+
+### Style Hierarchy
+
+```
+Category (e.g., "Profesional", "Artístico")
+  └── Subcategory / Pack (e.g., "Corporate", "Watercolor")
+        └── Individual Styles (e.g., "LinkedIn Headshot", "Blue Watercolor")
+```
+
+### Style Metadata Fields
+
+ Each style has:
+
+- **ID**: Unique identifier (e.g., `profesional-headshot-01`)
+- **Label**: Display name (e.g., "Professional Headshot")
+- **Category**: Top-level grouping (e.g., "Profesional")
+- **Subcategory**: Pack name (e.g., "Corporate")
+- **Prompt**: AI generation instructions (Replicate LoRA prompt)
+- **Image URL**: Preview thumbnail
+- **Is Premium**: Boolean (affects credit cost)
+- **Is Active**: Boolean (visible to users or not)
+- **Usage Count**: Number of times used
+- **Tags**: Keywords for search/filtering
+
+<Info>
+**IDENTITIES Constant:** The platform also uses a constant array `IDENTITIES` in `src/lib/constants.ts` for style definitions. Styles in database (`styles_metadata` table) take precedence.
+</Info>
+
+## Style Manager Interface
+
+### Header Section
+
+- **Title**: "Identity Repository (X)" where X = total style count
+- **Search Bar**: Filter styles by ID or label
+- **"Nueva Identidad" Button**: Create new style (green button)
+
+### Category Filters
+
+Horizontal pill buttons:
+
+- **"Todas / All"**: Show all styles
+- **Category Pills**: One per unique category (e.g., "Profesional", "Artístico")
+- **Selected Pill**: Green background with accent glow
+
+**Bulk Category Actions:**
+
+When a category is selected (not "All"):
+- **"Hide Category" / "Show Category" Button**: Toggle all styles in category active/inactive
+- Icon: Eye (visible) or Eye-off (hidden)
+
+### Subcategory Bar
+
+Appears below category filters when a category is selected:
+
+- **Subcategory Pills**: One per subcategory in selected category
+- **Toggle Icon**: Click eye icon on pill to show/hide entire subcategory
+- **Active Indicator**: Green text if subcategory is fully active
+
+### Style Grid
+
+Grid of style cards displaying:
+
+**Card Elements:**
+- **Preview Image**: Thumbnail (from `image_url`)
+- **Style Label**: Display name
+- **Category Badge**: Small badge showing category
+- **Status Indicator**:
+  - Green checkmark: Active
+  - Red X: Inactive
+- **Usage Count**: "X usos" (if > 0)
+- **Premium Badge**: Gold star if `is_premium: true`
+
+**Card Actions (on hover/click):**
+- **Edit**: Click card to open edit modal
+- **Quick Toggle**: Click status indicator to toggle active/inactive
+- **Delete**: Trash icon (red, confirmation required)
+
+## Creating a New Style
+
+<Steps>
+  <Step title="Click 'Nueva Identidad'">
+    In the Styles tab header, click the green **"Nueva Identidad"** button.
+  </Step>
+  
+  <Step title="Style Modal Opens">
+    Empty form for new style creation.
+  </Step>
+  
+  <Step title="Fill Required Fields">
+    **Basic Info:**
+    - **ID**: Unique slug (e.g., `vintage-sepia-01`)
+      - Use lowercase, hyphens, no spaces
+      - Must be unique across all styles
+    - **Label**: Display name (e.g., "Vintage Sepia")
+    - **Category**: Top-level (e.g., "Vintage")
+    - **Subcategory**: Pack name (e.g., "Retro Film")
+    
+    **Advanced:**
+    - **Prompt**: AI generation instructions
+      - Format: `[identity:style_name]` or Replicate LoRA format
+      - Example: `a photo of a person in vintage sepia tone, film grain, 1920s aesthetic`
+    - **Image URL**: Preview thumbnail
+      - Paste public HTTPS URL
+      - Recommended size: 400x600px (portrait)
+    - **Is Premium**: Toggle if style costs more credits
+    - **Is Active**: Toggle to make visible immediately
+    - **Tags**: Comma-separated keywords (optional)
+  </Step>
+  
+  <Step title="Upload Preview Image (Optional)">
+    If you have a file to upload:
+    - Click **"Upload Image"** button in modal
+    - Select JPG/PNG file (max 5MB)
+    - Image uploads to storage
+    - URL auto-fills in Image URL field
+  </Step>
+  
+  <Step title="Save Style">
+    - Click **"Guardar Identidad"** (Save Identity)
+    - Style is created in database
+    - Appears in Style Manager grid
+    - If active, immediately available to partners/users
+  </Step>
+</Steps>
+
+<Info>
+**Testing New Styles:** After creating, test the style by generating a photo yourself (use your own account or a test partner account) to ensure the AI prompt produces expected results.
+</Info>
+
+## Editing Existing Styles
+
+<Steps>
+  <Step title="Find Style in Grid">
+    - Use search bar to find by ID or label
+    - Or filter by category
+    - Or scroll through grid
+  </Step>
+  
+  <Step title="Click Style Card">
+    Card opens in edit modal.
+  </Step>
+  
+  <Step title="Modify Fields">
+    **Commonly Edited:**
+    - **Label**: Improve display name
+    - **Prompt**: Refine AI instructions for better results
+    - **Image URL**: Replace with better preview
+    - **Category/Subcategory**: Re-organize
+    - **Is Premium**: Change pricing tier
+    - **Is Active**: Toggle visibility
+  </Step>
+  
+  <Step title="Save Changes">
+    - Click **"Guardar Cambios"**
+    - Updates apply immediately
+    - Active users see changes on next style selection
+  </Step>
+</Steps>
+
+### Prompt Optimization
+
+For better generation results:
+
+**Good Prompts:**
+- ✅ Specific: "professional headshot, neutral background, soft lighting, business attire"
+- ✅ Descriptive: "watercolor painting, soft brushstrokes, pastel colors, artistic"
+- ✅ Consistent format: Follow Replicate LoRA guidelines
+
+**Poor Prompts:**
+- ❌ Vague: "nice photo"
+- ❌ Too complex: "photo in style of Van Gogh mixed with Picasso and also cyberpunk neon"
+- ❌ Conflicting: "realistic photo, cartoon style, abstract art"
+
+<Note>
+**Replicate Documentation:** Refer to Replicate's API docs for optimal prompt formatting for the specific LoRA model you're using.
+</Note>
+
+## Uploading Style Images
+
+### Image Requirements
+
+- **Format**: JPG or PNG
+- **Size**: Max 5MB
+- **Dimensions**: 400x600px recommended (portrait 2:3 ratio)
+- **Content**: Sample generation showing the style
+- **Quality**: High-resolution, clear, representative
+
+### Upload Process
+
+<Steps>
+  <Step title="Open Edit Modal">
+    Click style card or create new style.
+  </Step>
+  
+  <Step title="Click 'Upload Image'">
+    Button in Image section of modal.
+  </Step>
+  
+  <Step title="Select File">
+    Choose JPG/PNG from your device.
+  </Step>
+  
+  <Step title="Upload Progresses">
+    - File uploads to Supabase storage (or configured storage)
+    - Loading indicator shows progress
+    - Public URL is generated
+  </Step>
+  
+  <Step title="URL Auto-Fills">
+    Image URL field populates with public URL.
+    
+    Preview appears in modal.
+  </Step>
+  
+  <Step title="Save Style">
+    Click "Guardar" to persist the new image URL.
+  </Step>
+</Steps>
+
+<Info>
+**Image Hosting:** Images are stored in Supabase Storage bucket `public` or `style-images`. Ensure bucket is public-readable.
+</Info>
+
+## Managing Active Status
+
+### Individual Style Toggle
+
+**Quick Toggle:**
+- Click green checkmark or red X on style card
+- Status toggles immediately
+- No confirmation required
+
+**In Edit Modal:**
+- Toggle "Is Active" switch
+- Save changes
+
+**Effect:**
+- **Active**: Style appears in user/partner interfaces
+- **Inactive**: Style hidden from selection (but existing generations remain)
+
+### Bulk Category/Subcategory Toggle
+
+**Hide Entire Category:**
+
+<Steps>
+  <Step title="Select Category">
+    Click category pill (not "All").
+  </Step>
+  
+  <Step title="Click 'Hide Category'">
+    In the bulk actions bar.
+  </Step>
+  
+  <Step title="Confirm">
+    All styles in category set to inactive.
+  </Step>
+</Steps>
+
+**Show Entire Category:**
+- Same process, button changes to "Show Category"
+- All styles in category set to active
+
+**Hide Subcategory:**
+- Click eye icon on subcategory pill
+- All styles in that subcategory toggle inactive
+
+<Warning>
+**Bulk Actions:** Use with caution. Hiding popular categories affects all partners and users immediately. Test with small subcategories first.
+</Warning>
+
+## Style Usage Analytics
+
+### Viewing Usage Count
+
+Each style card shows:
+- **"X usos"**: Number of times style has been used in generations
+
+**Sorting by Usage:**
+
+<Note>
+**Future Feature:** Built-in sorting by usage count is planned. Currently, manually review grid or export data.
+</Note>
+
+### Identifying Top Styles
+
+**Manual Method:**
+1. Scan grid for high usage counts
+2. Note style IDs
+3. Prioritize in UI (mark as "trending" or "popular")
+
+**Database Query:**
+```sql
+SELECT id, label, category, usage_count
+FROM styles_metadata
+ORDER BY usage_count DESC
+LIMIT 10;
+```
+
+**Use Insights To:**
+- Feature popular styles prominently
+- Create "Top Styles" section
+- Inform marketing (showcase popular styles)
+- Retire unused styles
+
+## Retiring Unpopular Styles
+
+<Steps>
+  <Step title="Identify Unused Styles">
+    Filter grid to styles with `usage_count = 0` after 30+ days live.
+  </Step>
+  
+  <Step title="Review Style">
+    - Is preview image poor?
+    - Is prompt ineffective?
+    - Is category overcrowded?
+    - Does it overlap with other styles?
+  </Step>
+  
+  <Step title="Decision">
+    **Option A: Improve**
+    - Update preview image
+    - Refine prompt
+    - Recategorize
+    - Keep active
+    
+    **Option B: Deactivate**
+    - Set to inactive (hide from users)
+    - Keep in database for potential reactivation
+    
+    **Option C: Delete**
+    - Permanent removal (use only if truly unnecessary)
+  </Step>
+</Steps>
+
+<Info>
+**Best Practice:** Deactivate first, delete only after 90+ days of inactivity to ensure no negative impact.
+</Info>
+
+## Deleting Styles
+
+<Warning>
+**Permanent Action:** Deleting a style is irreversible. Existing generations using that style are unaffected, but the style cannot be selected for new generations.
+</Warning>
+
+<Steps>
+  <Step title="Open Edit Modal">
+    Click style card.
+  </Step>
+  
+  <Step title="Click Delete Button">
+    Red trash icon or "Eliminar" button at bottom of modal.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    - Confirmation dialog: "🚨 PURGA CRÍTICA: ¿Estás seguro de eliminar '[style]' definitivamente?"
+    - Type style name or ID to confirm
+    - Click "Confirmar Purga"
+  </Step>
+  
+  <Step title="Style Deleted">
+    - Removed from `styles_metadata` table
+    - Removed from `identity_prompts` table (if exists)
+    - Disappears from Style Manager grid
+    - Cannot be undone
+  </Step>
+</Steps>
+
+**When to Delete:**
+- ❌ Duplicate styles (keep best one)
+- ❌ Test styles (after testing complete)
+- ❌ Deprecated styles (replaced by better versions)
+- ❌ Styles violating content policy
+
+## Premium vs. Standard Styles
+
+### Premium Designation
+
+**What it means:**
+- Higher credit cost per generation (2-3x standard)
+- "Premium" badge on style card (gold star)
+- Typically higher quality or exclusive
+
+**When to mark Premium:**
+- ⭐ Exceptionally high-quality results
+- ⭐ Exclusive or licensed styles
+- ⭐ Complex prompts (more AI processing)
+- ⭐ Differentiation for tiered pricing
+
+**Implementation:**
+- Toggle "Is Premium" in edit modal
+- Credit cost multiplier handled in generation logic
+- Partners see premium badge in their style selectors
+
+<Note>
+**Credit Pricing:** Premium multiplier is configured in code (typically 2x or 3x). Contact development to adjust multiplier.
+</Note>
+
+## Style Categories Best Practices
+
+### Category Organization
+
+**Current Categories (examples):**
+- **Profesional**: Business, corporate, LinkedIn-ready
+- **Artístico**: Creative, artistic, painterly
+- **Vintage**: Retro, nostalgic, classic
+- **Fantástico**: Fantasy, dramatic, cinematic
+- **Clásico**: Timeless, elegant, traditional
+
+**Adding New Categories:**
+- Create styles with new category name
+- Category pill auto-appears in filter bar
+- Ensure category has ≥ 5 styles (avoid single-style categories)
+
+### Subcategory / Pack Organization
+
+**Best Practices:**
+- Keep subcategories focused (e.g., "Watercolor" not "Various Art")
+- Aim for 5-10 styles per subcategory
+- Use subcategories partners can easily explain to clients
+- Match naming to industry terms
+
+**Example Structure:**
+
+```
+Profesional
+  ├── Corporate Headshots (8 styles)
+  ├── Casual Business (6 styles)
+  └── Executive Portraits (5 styles)
+
+Artístico
+  ├── Watercolor (10 styles)
+  ├── Oil Painting (7 styles)
+  ├── Sketch Art (6 styles)
+  └── Abstract (5 styles)
+```
+
+## Troubleshooting Style Issues
+
+<AccordionGroup>
+  <Accordion title="Style generates poor quality images">
+    **Causes:**
+    - Prompt is vague or conflicting
+    - Replicate LoRA model issue
+    - User photo quality is poor
+    
+    **Solutions:**
+    - Refine prompt (more specific, clear)
+    - Test with high-quality source photo
+    - Check Replicate status (API issues?)
+    - Compare to other styles (is issue isolated?)
+    - Consider marking inactive until resolved
+  </Accordion>
+  
+  <Accordion title="Style not appearing for users">
+    **Checks:**
+    - Is "Is Active" toggled ON?
+    - Is category/subcategory active?
+    - Is style assigned to partner's style_presets?
+    - Check browser cache (user should refresh)
+    
+    **Solution:**
+    - Edit style, ensure active
+    - Check partner settings (may be restricted)
+    - Have user hard-refresh (Ctrl+Shift+R)
+  </Accordion>
+  
+  <Accordion title="Preview image not displaying">
+    **Causes:**
+    - Image URL is broken (404)
+    - Image URL not HTTPS
+    - CORS issues (image host blocks hotlinking)
+    - Image deleted from storage
+    
+    **Solutions:**
+    - Test URL in browser (does it load?)
+    - Re-upload image via upload button
+    - Use Supabase storage (not external host)
+    - Check storage bucket permissions (public read?)
+  </Accordion>
+  
+  <Accordion title="Can't delete style">
+    **Possible Causes:**
+    - Database permissions
+    - Foreign key constraints (generations referencing style)
+    
+    **Workaround:**
+    - Set to inactive instead of deleting
+    - Contact development if deletion is critical
+    - Check database logs for error details
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices Summary
+
+### Style Creation
+- ✅ Test new styles thoroughly before activating
+- ✅ Use high-quality preview images
+- ✅ Write clear, specific prompts
+- ✅ Organize into logical categories
+- ✅ Start with small batch (5-10 styles), iterate
+
+### Style Management
+- 🗑️ Review usage monthly, retire unused styles
+- 🗑️ Keep catalog curated (quality > quantity)
+- 🗑️ Update prompts based on feedback
+- 🗑️ Refresh preview images periodically
+
+### Organization
+- 📋 Limit to 5-8 main categories
+- 📋 5-10 styles per subcategory (avoid overcrowding)
+- 📋 Use consistent naming conventions
+- 📋 Balance premium vs. standard styles
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Master Dashboard" icon="gauge" href="/guides/admin/master-dashboard">
+    Navigate the admin control panel
+  </Card>
+  <Card title="Manage Partners" icon="handshake" href="/guides/admin/managing-partners">
+    Control which styles partners can access
+  </Card>
+  <Card title="Platform Analytics" icon="chart-line" href="/guides/admin/analytics">
+    Track style popularity and usage
+  </Card>
+</CardGroup>

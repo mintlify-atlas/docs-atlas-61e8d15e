@@ -1,0 +1,158 @@
+---
+title: Edge Functions
+description: API reference for Supabase Edge Functions in Cabina
+---
+
+## Overview
+
+Cabina uses Supabase Edge Functions (Deno runtime) for serverless backend operations:
+
+- **cabina-vision** - AI image generation pipeline
+- **mercadopago-payment** - Payment processing and webhooks
+
+<Note>
+Edge Functions run on Deno Deploy with global distribution for low latency.
+</Note>
+
+## Function Endpoints
+
+### Base URL
+
+```
+https://<project-ref>.supabase.co/functions/v1/
+```
+
+**Example:**
+```
+https://elesttjfwfhvzdvldytn.supabase.co/functions/v1/cabina-vision
+```
+
+## Authentication
+
+Edge Functions require the Supabase `anon` key in the request header:
+
+```bash
+Authorization: Bearer <SUPABASE_ANON_KEY>
+apikey: <SUPABASE_ANON_KEY>
+```
+
+**JavaScript Example:**
+
+```typescript
+import { supabase } from './supabaseClient';
+
+const { data, error } = await supabase.functions.invoke('cabina-vision', {
+  body: { user_photo: base64Image, model_id: 'pb_a' }
+});
+```
+
+## Common Headers
+
+All edge functions support CORS and expect:
+
+```http
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type
+```
+
+## Error Handling
+
+All functions return JSON responses with consistent error structure:
+
+```json
+{
+  "error": true,
+  "success": false,
+  "message": "Detailed error message"
+}
+```
+
+**Success Response:**
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+## Rate Limiting
+
+<Warning>
+Edge Functions are subject to:
+- Supabase plan limits (free tier: 500K invocations/month)
+- Individual function timeout: 150 seconds
+- Max payload size: 10MB
+</Warning>
+
+Monitor usage in Supabase Dashboard → Edge Functions → Metrics.
+
+## Deployment
+
+<CodeGroup>
+```bash Deploy All
+supabase functions deploy
+```
+
+```bash Deploy Specific Function
+supabase functions deploy cabina-vision
+```
+
+```bash Set Secrets
+supabase secrets set BANANA_API_KEY=your-key
+```
+</CodeGroup>
+
+## Function Details
+
+<CardGroup cols={2}>
+  <Card title="cabina-vision" icon="wand-magic-sparkles" href="/api/cabina-vision">
+    AI image generation pipeline
+  </Card>
+  <Card title="mercadopago-payment" icon="credit-card" href="/api/payment-webhook">
+    Payment processing and webhooks
+  </Card>
+</CardGroup>
+
+## Logs & Debugging
+
+### View Logs
+
+```bash
+# Stream live logs
+supabase functions logs cabina-vision --tail
+
+# View recent logs
+supabase functions logs cabina-vision --limit 100
+```
+
+### Local Development
+
+```bash
+# Serve functions locally
+supabase functions serve
+
+# Serve specific function
+supabase functions serve cabina-vision --env-file .env.local
+```
+
+**Test locally:**
+
+```bash
+curl -i --location --request POST 'http://localhost:54321/functions/v1/cabina-vision' \
+  --header 'Authorization: Bearer <ANON_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{"user_photo":"data:image/png;base64,...","model_id":"pb_a"}'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="cabina-vision API" icon="image" href="/api/cabina-vision">
+    Complete AI generation API reference
+  </Card>
+  <Card title="Payment Webhook" icon="webhook" href="/api/payment-webhook">
+    Mercado Pago integration details
+  </Card>
+</CardGroup>

@@ -1,0 +1,117 @@
+---
+title: 'Style Categories'
+description: 'Organize and filter AI styles by category for faster navigation'
+icon: 'grid'
+---
+
+Cabina's style library is organized into five main categories plus dynamic filtering options to help users quickly find their desired aesthetic.
+
+## Main Categories
+
+### All Styles
+The default view showing every available style across all categories. Perfect for browsing the complete library.
+
+### Series (Monitor Icon)
+TV show-inspired transformations featuring:
+- **Breaking Bad** (4 styles)
+- **La Ley de los Audaces / Suits** (4 styles)
+- **Peaky Blinders** (4 premium styles)
+
+Popular tags: drama, law, gangster, vintage, industrial
+
+### Cinema (Layout Icon)
+Movie and cinematic themes:
+- **John Wick** (8 premium styles)
+- **Superhéroes** (7 premium styles)
+
+Popular tags: action, heroes, justice, power, epic
+
+### Fantasy (Sparkles Icon)
+Magical and mystical transformations:
+- **Magia** collection (5 styles)
+
+Popular tags: magic, illusion, arcane, spells, mystery
+
+### Urban (Camera Icon)
+Modern photography aesthetics:
+- **Urbano** collection (4 styles)
+
+Popular tags: street, studio, neon, vintage, cyberpunk
+
+### Sports
+Athletic and racing themes:
+- **Formula 1** (4 premium styles)
+
+Popular tags: speed, racing, professional, team
+
+## Dynamic Category System
+
+<Info>
+  Categories are dynamically calculated based on available styles. If all styles in a category are hidden, the category won't appear in the navigation.
+</Info>
+
+```typescript
+const dynamicCategories = useMemo(() => {
+  const uniqueCategoryIds = Array.from(
+    new Set(availableIdentities.map(id => id.category).filter(Boolean))
+  );
+  // Categories auto-update based on active styles
+}, [availableIdentities]);
+```
+
+## Search & Filter
+
+### Tag-Based Search
+Each style includes Spanish and English tags for comprehensive search:
+- **Language tags**: Both Spanish and English terms
+- **Theme tags**: Character names, settings, moods
+- **Color tags**: Dominant color descriptions
+- **Technical tags**: Style techniques and aesthetics
+
+Example tags for "Red Bull Racing":
+```javascript
+tags: ['speed', 'f1', 'action', 'professional', 'carrera', 
+       'deporte', 'rojo', 'velocidad', 'auto', 'monaco']
+```
+
+### Favorites Filter
+Logged-in users can mark styles as favorites and filter to show only their preferred styles.
+
+## Category Icons
+
+Each category uses a distinct Lucide React icon for visual identification:
+
+<CardGroup cols={3}>
+  <Card title="Sparkles" icon="sparkles">
+    All & Fantasy categories
+  </Card>
+  <Card title="Monitor" icon="monitor">
+    Series category
+  </Card>
+  <Card title="Layout" icon="layout">
+    Cinema category
+  </Card>
+  <Card title="Camera" icon="camera">
+    Urban category
+  </Card>
+</CardGroup>
+
+## Real-Time Updates
+
+Category counts and availability update in real-time when:
+- Admins toggle style visibility
+- New styles are added to the database
+- Styles are marked as premium/free
+- Event-specific style selections are applied
+
+<Note>
+  In event mode, categories automatically filter to show only styles selected for that specific event.
+</Note>
+
+## Event-Specific Categories
+
+When accessing Cabina through an event link (`?event=slug`):
+- Only styles selected by the event organizer appear
+- Categories auto-adjust to show only relevant options
+- Empty categories are automatically hidden
+- Random recommendations replace priority-based suggestions

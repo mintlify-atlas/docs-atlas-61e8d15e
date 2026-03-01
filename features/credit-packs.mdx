@@ -1,0 +1,341 @@
+---
+title: 'Credit Packs'
+description: 'Purchase credits to unlock AI photo generations and premium style packs'
+icon: 'coins'
+---
+
+Credits are the platform currency used to generate AI photos and unlock premium style collections.
+
+## Credit System
+
+### Credit Costs
+
+<ParamField path="ai_generation" type="number" default="100">
+  Cost per AI photo transformation
+</ParamField>
+
+<ParamField path="premium_pack_unlock" type="number" default="3000">
+  One-time cost to unlock premium style packs
+</ParamField>
+
+### Free User Credits
+
+New B2C users receive:
+```javascript
+initial_credits: 500  // 5 free AI generations
+```
+
+<Info>
+  500 credits = 5 AI photo generations, perfect for testing the platform.
+</Info>
+
+## Purchasing Credits
+
+### Credit Packs (Future)
+
+Planned credit packages for B2C users:
+
+<CardGroup cols={3}>
+  <Card title="Starter" icon="zap">
+    **1,000 credits**
+    $5 USD
+    10 AI generations
+  </Card>
+  <Card title="Popular" icon="star">
+    **5,000 credits**
+    $20 USD
+    50 AI generations
+    (20% bonus)
+  </Card>
+  <Card title="Pro" icon="crown">
+    **15,000 credits**
+    $50 USD
+    150 AI generations
+    (50% bonus)
+  </Card>
+</CardGroup>
+
+### Payment Integration
+
+MercadoPago integration for Latin America:
+
+```javascript
+const handlePayment = async (pack) => {
+  const { data } = await supabase.functions.invoke('mercadopago-payment', {
+    body: {
+      user_id: session.user.id,
+      credits: pack.credits,
+      price: pack.price,
+      pack_name: pack.name,
+      redirect_url: window.location.origin
+    }
+  });
+  
+  // Redirect to MercadoPago checkout
+  window.location.href = data.init_point;
+};
+```
+
+### Payment Flow
+
+<Steps>
+  <Step title="Select Pack">
+    Choose credit amount from pricing page
+  </Step>
+  <Step title="MercadoPago Redirect">
+    Secure checkout on MercadoPago platform
+  </Step>
+  <Step title="Payment Processing">
+    Credit card, debit, or cash payment options
+  </Step>
+  <Step title="Webhook Confirmation">
+    MercadoPago notifies platform of successful payment
+  </Step>
+  <Step title="Credits Added">
+    Balance updated automatically in user profile
+  </Step>
+</Steps>
+
+## Premium Style Packs
+
+### Available Packs
+
+Premium style collections for 3,000 credits each:
+
+<Tabs>
+  <Tab title="John Wick">
+    **8 Styles** - 3,000 credits
+    - Baba Yaga
+    - The Continental
+    - High Table Legacy
+    - Excommunicado
+    - Desert Assassin
+    - Ballerina Soul
+    - Osaka Night
+    - Last Stand
+  </Tab>
+  <Tab title="Superhéroes">
+    **7 Styles** - 3,000 credits
+    - The Avenger
+    - Legacy of Thor
+    - Cosmic Guardian
+    - Emerald Might
+    - Justice Knight
+    - Knight Alt I
+    - Knight Alt II
+  </Tab>
+  <Tab title="Peaky Blinders">
+    **4 Styles** - 3,000 credits
+    - Thomas Shelby
+    - Birmingham Streets
+    - Garrison Pub
+    - The Razor Edge
+  </Tab>
+  <Tab title="Formula 1">
+    **4 Styles** - 3,000 credits
+    - Red Bull Racing
+    - Ferrari Team
+    - Mercedes AMG
+    - Pit Stop Vibe
+  </Tab>
+</Tabs>
+
+### Unlocking Packs
+
+```javascript
+const handleUnlockPack = async (subCategory) => {
+  // Verify balance
+  if (profile.credits < PREMIUM_PACK_PRICE) {
+    setShowPricing(true);
+    return;
+  }
+  
+  // Update profile
+  const newUnlockedPacks = [...(profile.unlocked_packs || []), subCategory];
+  const newCredits = profile.credits - PREMIUM_PACK_PRICE;
+  
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      credits: newCredits,
+      unlocked_packs: newUnlockedPacks
+    })
+    .eq('id', session.user.id);
+  
+  // Confetti celebration!
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+};
+```
+
+<Warning>
+  Premium pack unlocks are permanent and non-refundable. Make sure you want the pack before confirming.
+</Warning>
+
+## Credit Balance Display
+
+Always-visible credit counter in navigation:
+
+```javascript
+<div className="flex items-center gap-2 px-4 py-2 bg-black/40 rounded-full">
+  <Zap className="w-4 h-4 text-yellow-400" />
+  <span className="font-bold">{profile.credits.toLocaleString()}</span>
+  <span className="text-xs text-white/40">créditos</span>
+</div>
+```
+
+### Low Balance Warning
+
+Alert when credits drop below generation cost:
+```javascript
+if (profile.credits < 100) {
+  return (
+    <div className="bg-red-500/20 border border-red-500/40 p-4 rounded-xl">
+      <AlertTriangle className="w-5 h-5" />
+      <p>Saldo bajo. Recarga créditos para seguir generando.</p>
+      <button onClick={() => setShowPricing(true)}>Comprar Créditos</button>
+    </div>
+  );
+}
+```
+
+## Partner & Event Credits
+
+### Partner Credit Allocation
+
+Partners purchase credits in bulk:
+- Minimum: 1,000 credits
+- No maximum limit
+- Wholesale pricing (contact admin)
+- No expiration date
+
+### Event Credit Assignment
+
+Partners allocate credits to events:
+```javascript
+const handleCreateEvent = async (eventData) => {
+  // Deduct from partner balance
+  const newPartnerBalance = partner.credits - eventData.credits_allocated;
+  
+  // Create event with allocation
+  await supabase.from('events').insert({
+    ...eventData,
+    credits_allocated: eventData.credits_allocated,
+    credits_used: 0,
+    partner_id: partner.id
+  });
+  
+  // Update partner balance
+  await supabase
+    .from('partners')
+    .update({ credits: newPartnerBalance })
+    .eq('id', partner.id);
+};
+```
+
+### Credit Top-Up
+
+Add credits to running events:
+
+<Steps>
+  <Step title="Open Event">
+    Navigate to event in partner dashboard
+  </Step>
+  <Step title="Click Top-Up">
+    Credit card icon in event header
+  </Step>
+  <Step title="Enter Amount">
+    Specify additional credits (1-1000)
+  </Step>
+  <Step title="Confirm Transfer">
+    Credits moved from partner to event atomically
+  </Step>
+</Steps>
+
+## Credit Consumption
+
+### Per Generation
+
+Each AI photo costs 100 credits:
+```javascript
+// User generation
+await supabase
+  .from('profiles')
+  .update({ credits: profile.credits - 100 })
+  .eq('id', userId);
+
+// Event generation (atomic)
+await supabase.rpc('event_generation', {
+  event_id: eventId,
+  user_id: userId
+});
+```
+
+### Refund Policy
+
+Credits refunded if generation fails:
+```javascript
+catch (error) {
+  // Refund on failure
+  await supabase
+    .from('profiles')
+    .update({ credits: profile.credits + 100 })
+    .eq('id', userId);
+  
+  showToast('Error en generación. Créditos devueltos.', 'error');
+}
+```
+
+<Info>
+  Connection timeouts do NOT refund credits - the generation continues in the cloud.
+</Info>
+
+## Transaction History
+
+All credit movements logged:
+
+```typescript
+interface Transaction {
+  id: string;
+  user_id: string;
+  amount: number;           // Positive = credit, negative = debit
+  type: 'purchase' | 'generation' | 'pack_unlock' | 'refund' | 'transfer';
+  details: object;
+  created_at: timestamp;
+}
+```
+
+View in profile history:
+```javascript
+const { data: transactions } = await supabase
+  .from('transactions')
+  .select('*')
+  .eq('user_id', userId)
+  .order('created_at', { ascending: false });
+```
+
+## Daily Limits
+
+Free users limited to 2 generations per day:
+```javascript
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const { count } = await supabase
+  .from('generations')
+  .select('*', { count: 'exact', head: true })
+  .eq('user_id', userId)
+  .gte('created_at', today.toISOString());
+
+if (count >= 2) {
+  showToast('Máximo de impresiones del día alcanzado.', 'error');
+  return;
+}
+```
+
+<Note>
+  Daily limits reset at midnight (00:00 server time). Premium users and events have no daily limits.
+</Note>

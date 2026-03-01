@@ -1,0 +1,188 @@
+---
+title: Installation
+description: Step-by-step guide to install and run Creativa Labs Cabina locally
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (v18 or higher)
+- **npm**, **yarn**, or **pnpm** package manager
+- **Git** for version control
+- **Supabase CLI** (optional, for local development)
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd creativa-labs-cabina-de-fotos
+```
+
+### 2. Install Dependencies
+
+<CodeGroup>
+```bash npm
+npm install
+```
+
+```bash yarn
+yarn install
+```
+
+```bash pnpm
+pnpm install
+```
+</CodeGroup>
+
+### 3. Configure Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```bash
+cp .env.example .env.local
+```
+
+See [Environment Variables](/technical/environment-variables) for detailed configuration.
+
+### 4. Run Development Server
+
+<CodeGroup>
+```bash npm
+npm run dev
+```
+
+```bash yarn
+yarn dev
+```
+
+```bash pnpm
+pnpm dev
+```
+</CodeGroup>
+
+The application will start on `https://localhost:3000` with HTTPS enabled.
+
+<Note>
+The development server uses a self-signed SSL certificate for local HTTPS. Your browser may show a security warning - this is normal for local development.
+</Note>
+
+## Project Structure
+
+```
+creativa-labs-cabina-de-fotos/
+├── src/
+│   ├── components/         # React components
+│   │   ├── dashboards/    # Admin, Partner, Client dashboards
+│   │   ├── kiosk/         # Event mode UI
+│   │   └── shared/        # Reusable components
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Utilities and clients
+│   ├── types/             # TypeScript definitions
+│   └── index.tsx          # Main app entry point
+├── supabase/
+│   ├── functions/         # Edge Functions
+│   ├── migrations/        # Database migrations
+│   └── config.toml        # Supabase configuration
+├── public/                # Static assets
+├── index.html             # Main app HTML
+├── dashboard.html         # Dashboard HTML
+├── vite.config.ts         # Vite configuration
+└── package.json           # Dependencies
+```
+
+## Key Dependencies
+
+The project uses the following main dependencies:
+
+| Package | Version | Purpose |
+|---------|---------|----------|
+| `@supabase/supabase-js` | ^2.90.1 | Supabase client |
+| `react` | ^19.2.0 | UI framework |
+| `react-dom` | ^19.2.0 | React rendering |
+| `framer-motion` | ^12.27.5 | Animations |
+| `@react-three/fiber` | ^9.4.0 | 3D graphics |
+| `lucide-react` | ^0.554.0 | Icons |
+| `qrcode.react` | ^4.2.0 | QR code generation |
+| `vite` | ^6.2.0 | Build tool |
+| `typescript` | ~5.8.2 | Type safety |
+
+## Build for Production
+
+<CodeGroup>
+```bash npm
+npm run build
+```
+
+```bash yarn
+yarn build
+```
+
+```bash pnpm
+pnpm build
+```
+</CodeGroup>
+
+The production build outputs to the `dist/` directory.
+
+## Preview Production Build
+
+<CodeGroup>
+```bash npm
+npm run preview
+```
+
+```bash yarn
+yarn preview
+```
+
+```bash pnpm
+pnpm preview
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port 3000 already in use">
+    The app is configured to run on port 3000. If this port is busy, you can:
+    
+    1. Stop the process using port 3000
+    2. Modify the port in `vite.config.ts` under `server.port`
+  </Accordion>
+
+  <Accordion title="SSL certificate warnings">
+    The development server uses `@vitejs/plugin-basic-ssl` for HTTPS. Browser warnings are expected.
+    
+    To trust the certificate:
+    - Chrome: Click "Advanced" → "Proceed to localhost"
+    - Firefox: Click "Advanced" → "Accept the Risk and Continue"
+  </Accordion>
+
+  <Accordion title="Supabase connection errors">
+    Ensure your `.env.local` contains valid Supabase credentials:
+    - `VITE_SUPABASE_URL`
+    - `VITE_SUPABASE_ANON_KEY`
+    
+    Check that your Supabase project is active and accessible.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="key" href="/technical/environment-variables">
+    Configure all required environment variables
+  </Card>
+  <Card title="Database Schema" icon="database" href="/technical/database-schema">
+    Understand the database structure
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/technical/deployment">
+    Deploy to production
+  </Card>
+  <Card title="Supabase Integration" icon="plug" href="/technical/supabase-integration">
+    Learn about Supabase setup
+  </Card>
+</CardGroup>

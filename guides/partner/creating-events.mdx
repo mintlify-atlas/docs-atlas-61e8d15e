@@ -1,0 +1,423 @@
+---
+title: Creating Events
+description: Learn how to create, configure, and manage event instances for your clients
+---
+
+## Event Overview
+
+Events are individual instances of the photo booth experience. Each event has:
+
+- Unique URL slug for access
+- Dedicated credit allocation
+- Custom or inherited branding
+- Specific AI style packs enabled
+- Start and end dates (optional)
+- Client association (optional)
+
+## Creating a New Event
+
+<Steps>
+  <Step title="Navigate to Events Tab">
+    From your Partner Dashboard, click the **Events** tab in the header navigation.
+  </Step>
+  
+  <Step title="Click 'Nuevo Evento'">
+    In the top-right corner, click the **"Nuevo Evento"** (New Event) button with the Plus icon.
+  </Step>
+  
+  <Step title="Fill Event Details">
+    The Create Event Modal opens with the following fields:
+    
+    **Basic Information:**
+    - **Event Name**: Display name (e.g., "Boda de Lucas & Martina")
+    - **Event Slug**: URL identifier (e.g., "boda-lucas-martina")
+      - Must be unique
+      - Only lowercase letters, numbers, and hyphens
+      - Becomes part of URL: `app.metalabia.com/?event=[slug]`
+    
+    **Dates:**
+    - **Start Date**: When event begins (optional)
+    - **End Date**: When event ends (optional)
+    - If no dates set, event is always active
+    
+    **Credit Allocation:**
+    - **Credits to Allocate**: Number of credits for this event
+    - Deducted from your partner balance
+    - Typical allocation: 500-1000 credits per event
+    
+    **Client Association (Optional):**
+    - **Select Client**: Dropdown of your clients
+    - Links event to specific client account
+    - Client can access their dashboard to customize branding
+  </Step>
+  
+  <Step title="Select AI Style Packs">
+    Choose which style packs are available for this event:
+    
+    - Grid displays all available style packs
+    - Click pack thumbnail to toggle selection
+    - Selected packs show checkmark overlay
+    - At least one pack must be selected
+    
+    **Pack Categories:**
+    - Profesional
+    - Artístico
+    - Vintage
+    - Fantástico
+    - Clásico
+  </Step>
+  
+  <Step title="Create Event">
+    Click **"Crear Evento"** at the bottom of the modal.
+    
+    - Event is created immediately
+    - Credits are allocated
+    - Event appears in your Events table
+    - Status is set to "En Línea" (Online/Active)
+  </Step>
+</Steps>
+
+<Info>
+**Event Activation:** Events are active immediately upon creation. Users can access them via the QR code or URL right away.
+</Info>
+
+## Event Configuration Details
+
+### Event Naming
+
+**Event Name Best Practices:**
+- ✅ Use clear, descriptive names: "Casamiento Julia & Sebastián"
+- ✅ Include date if needed: "Evento Corporativo Mayo 2025"
+- ✅ Keep under 50 characters for display
+- ❌ Avoid special characters: ~!@#$%
+
+**Event Slug Best Practices:**
+- ✅ Use hyphens for spaces: `boda-julia-sebastian`
+- ✅ Keep short and memorable: `corporativo-mayo-25`
+- ✅ Only lowercase: `evento-importante`
+- ❌ Don't use underscores: `evento_importante`
+- ❌ Avoid accents: `boda-julía` (use `boda-julia`)
+
+<Warning>
+**Unique Slugs Required:** Each event slug must be unique across the entire platform. If you receive a "slug already exists" error, try adding a number or date: `boda-2025` or `evento-mayo-01`.
+</Warning>
+
+### Credit Allocation Guidelines
+
+**How Many Credits Per Event?**
+
+Calculate based on expected usage:
+
+```
+Expected Credits = (Number of Guests) × (Photos per Guest) × (Cost per Photo)
+
+Example:
+- 100 guests
+- 3 photos each on average
+- 100 credits per photo (average style cost)
+
+100 × 3 × 100 = 30,000 credits needed
+
++ 20% buffer = 36,000 credits recommended
+```
+
+**Common Allocations:**
+
+| Event Type | Guests | Recommended Credits |
+|------------|--------|--------------------|
+| Small Party | 20-50 | 5,000-10,000 |
+| Wedding | 100-150 | 30,000-50,000 |
+| Corporate | 50-100 | 15,000-30,000 |
+| Festival | 500+ | 150,000+ |
+
+<Note>
+You can always add more credits later using the **ShoppingCart icon** in the Events table if an event runs low.
+</Note>
+
+### Date Configuration
+
+**Start Date:**
+- Event becomes accessible at 00:00 on start date
+- If no start date, event is immediately accessible
+- Users see "Event hasn't started yet" screen before start time
+
+**End Date:**
+- Event stops accepting new generations at 23:59 on end date
+- Gallery remains accessible after end date
+- If no end date, event runs indefinitely
+
+**Time Zone:**
+- Dates use server time zone (typically UTC-3 for Argentina)
+- Consider time zone when setting event dates
+
+<Info>
+**Pro Tip:** For multi-day events, set start date to day before and end date to day after to account for setup/teardown time.
+</Info>
+
+### Client Association
+
+**When to Associate a Client:**
+
+✅ **Do associate:**
+- When client should access event dashboard
+- For clients who want to customize branding
+- When tracking usage per client
+- For invoicing purposes
+
+❌ **Don't associate:**
+- For internal test events
+- When you maintain full control
+- For one-off events without ongoing client relationship
+
+**What Clients Can Do:**
+
+When an event is associated with a client:
+- Client receives email with dashboard login
+- Client can customize event branding (logo, colors, welcome text)
+- Client can view event photo gallery
+- Client can download all event photos
+- Client **cannot** modify credits, slug, or core settings
+
+## Managing Existing Events
+
+### Events Table
+
+Your Events tab displays all events in a table:
+
+**Columns:**
+1. **Identificación**: Event name, slug, and avatar
+2. **Consumo de Créditos**: Progress bar showing used/allocated ratio
+3. **Estado**: Active status (green "En Línea" or red "Pausado")
+4. **Panel de Control**: Action buttons
+
+**Action Buttons:**
+
+<Tabs>
+  <Tab title="Shopping Cart (Green)">
+    **Add Credits to Event**
+    
+    - Opens top-up modal
+    - Enter additional credit amount
+    - Deducted from your partner balance
+    - Added instantly to event allocation
+  </Tab>
+  
+  <Tab title="Layout (Indigo)">
+    **Moderate Gallery**
+    
+    - Opens moderation view
+    - See all generated photos for this event
+    - Delete inappropriate content
+    - Bulk selection and deletion
+    - Download all photos
+    
+    See [QR Codes & Sharing](/guides/organizer/qr-codes) for gallery details.
+  </Tab>
+  
+  <Tab title="Edit (Gray)">
+    **Edit Event Settings**
+    
+    - Modify event name, dates
+    - Change selected style packs
+    - Update client association
+    - Toggle active status
+    - Cannot change slug or allocated credits
+  </Tab>
+  
+  <Tab title="External Link (Gray)">
+    **View Public Kiosk**
+    
+    - Opens event URL in new tab
+    - See the user-facing interface
+    - Test as end user would experience
+    - URL: `app.metalabia.com/?event=[slug]`
+  </Tab>
+  
+  <Tab title="Monitor (Blue)">
+    **Manage as Client**
+    
+    - View event from client perspective
+    - Access client dashboard for this event
+    - Useful for configuration assistance
+    - Only available for events with client association
+  </Tab>
+  
+  <Tab title="Trash (Red)">
+    **Delete Event**
+    
+    - Permanent deletion (cannot be undone)
+    - Confirmation modal appears
+    - Deletes all associated photos
+    - Allocated credits are lost (not returned)
+    
+    **Warning:** Only delete test events or cancelled events.
+  </Tab>
+</Tabs>
+
+## Editing an Event
+
+<Steps>
+  <Step title="Click Edit Button">
+    In the Events table, click the **Edit2 icon** (gray button) for the event you want to modify.
+  </Step>
+  
+  <Step title="Update Settings">
+    Edit Event Modal opens with current values:
+    
+    **Editable Fields:**
+    - Event Name
+    - Start Date
+    - End Date
+    - Selected Style Packs
+    - Active Status
+    
+    **Non-editable:**
+    - Event Slug (permanent)
+    - Credits Allocated (use top-up instead)
+    - Client Association (contact support to change)
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **"Guardar Cambios"**.
+    
+    - Changes apply immediately
+    - Active users see updates on next page load
+    - Success toast confirms save
+  </Step>
+</Steps>
+
+## Adding Credits to Running Events
+
+If an event runs low on credits during the event:
+
+<Steps>
+  <Step title="Monitor Credit Usage">
+    Watch the progress bar in the Events table:
+    - Green: 0-75% used
+    - Orange: 75-90% used (warning)
+    - Red: 90-100% used (critical)
+  </Step>
+  
+  <Step title="Click Shopping Cart Icon">
+    When credits run low, click the green **ShoppingCart icon** button.
+  </Step>
+  
+  <Step title="Enter Top-Up Amount">
+    In the modal:
+    - Enter number of credits to add
+    - View your available partner balance
+    - Ensure sufficient balance
+  </Step>
+  
+  <Step title="Confirm Top-Up">
+    Click **"Asignar Créditos"**.
+    
+    - Credits transfer from partner account to event
+    - Event total increases immediately
+    - Users can continue generating photos
+  </Step>
+</Steps>
+
+<Warning>
+**Avoid Interruptions:** Set up alerts (via support) to notify you when events reach 80% credit usage, giving you time to top up before they run out.
+</Warning>
+
+## Generating QR Codes
+
+Once your event is created, generate a QR code for easy access:
+
+See the dedicated [QR Codes & Sharing](/guides/organizer/qr-codes) guide for:
+- How to generate QR codes
+- Downloading printable QR designs
+- QR code placement strategies
+- URL sharing methods
+
+## Event Best Practices
+
+### Before the Event
+
+- ✅ Create event at least 24 hours in advance
+- ✅ Test event with dummy account
+- ✅ Print QR codes and place at venue
+- ✅ Allocate 20% more credits than estimated need
+- ✅ Send preview link to client for approval
+- ✅ Configure branding if using white-label
+
+### During the Event
+
+- 👀 Monitor credit consumption in real-time
+- 👀 Check moderation view periodically for inappropriate content
+- 📲 Have phone accessible to top up credits if needed
+- 📧 Respond to client messages quickly
+
+### After the Event
+
+- 📥 Download all photos from gallery
+- 📧 Send download link to client
+- 📋 Review analytics (generations, popular styles)
+- 🚫 Deactivate event if no longer needed (or keep for gallery access)
+- ♻️ Optionally delete after client confirmation (to clean up dashboard)
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Event slug already exists">
+    **Solution:**
+    - Choose a different slug
+    - Add date or number: `boda-julia-2025` or `evento-01`
+    - Check for typos that might match existing events
+  </Accordion>
+  
+  <Accordion title="Insufficient credits to allocate">
+    **Solution:**
+    - Navigate to Wallet tab
+    - Purchase more credits
+    - Wait for payment confirmation
+    - Return to event creation
+  </Accordion>
+  
+  <Accordion title="Client can't access event dashboard">
+    **Checks:**
+    - Verify email address is correct
+    - Ensure event is associated with client
+    - Check if invitation email was sent (see Clients tab)
+    - Have client check spam folder
+    - Resend invitation via Clients tab
+  </Accordion>
+  
+  <Accordion title="Users see 'Event not active' message">
+    **Causes:**
+    - Event hasn't reached start date yet
+    - Event has passed end date
+    - Event was manually deactivated
+    
+    **Solution:**
+    - Edit event to adjust dates
+    - Or toggle active status to "Active"
+  </Accordion>
+  
+  <Accordion title="Styles aren't showing for users">
+    **Solution:**
+    - Edit event
+    - Verify at least one style pack is selected
+    - Check that partner has enabled styles in Branding tab
+    - Save changes and have users refresh
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configure Styles" icon="palette" href="/guides/organizer/configuring-styles">
+    Learn which styles to enable per event
+  </Card>
+  <Card title="Generate QR Codes" icon="qrcode" href="/guides/organizer/qr-codes">
+    Create printable QR codes for venue
+  </Card>
+  <Card title="Manage Credits" icon="coins" href="/guides/partner/managing-credits">
+    Optimize credit allocation strategies
+  </Card>
+  <Card title="Live Gallery" icon="images" href="/guides/organizer/live-gallery">
+    Monitor and moderate event photos
+  </Card>
+</CardGroup>

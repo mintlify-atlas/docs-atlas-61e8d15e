@@ -1,0 +1,376 @@
+---
+title: Administrator Master Dashboard
+description: Navigate and use the master control panel for platform-wide administration
+---
+
+## Administrator Role Overview
+
+As a **Master Administrator**, you have complete control over the Cabina platform. Your dashboard provides oversight and management of:
+
+- 🤝 Partners (resellers/agencies)
+- 👤 End Users (B2C customers)
+- ✨ AI Style Management
+- 📊 Platform Analytics
+- 🔧 System Settings
+- 📖 Activity Logs
+
+<Warning>
+**High-Level Access:** Administrator actions affect the entire platform. Exercise caution, especially with deletion and deactivation functions.
+</Warning>
+
+## Accessing the Admin Dashboard
+
+<Steps>
+  <Step title="Sign In with Admin Account">
+    Use your master administrator email at `app.metalabia.com`.
+  </Step>
+  
+  <Step title="Verify Admin Role">
+    Your account must have `is_master: true` in the profiles table.
+  </Step>
+  
+  <Step title="Navigate to Admin Panel">
+    Click **"Admin"** or **"Master Dashboard"** in the main navigation.
+  </Step>
+  
+  <Step title="Dashboard Loads">
+    You'll see the Overview section with:
+    - System Pulse indicator (green = operational)
+    - Platform-wide statistics
+    - Quick action buttons
+  </Step>
+</Steps>
+
+## Dashboard Navigation
+
+### Main View Tabs
+
+<Tabs>
+  <Tab title="Overview">
+    **Purpose:** Platform health and key metrics
+    
+    **Key Elements:**
+    - **System Pulse**: Real-time system status indicator (pulsing green circle)
+    - **Platform Stats**: Total partners, users, generations, revenue
+    - **Recent Activity**: Latest logs and events
+    - **Quick Actions**: Create partner, add user, manage styles
+    
+    **Best For:** Daily health check, high-level monitoring
+  </Tab>
+  
+  <Tab title="Partners">
+    **Purpose:** Manage reseller/agency accounts
+    
+    **Features:**
+    - View all partners (active and inactive)
+    - Approve pending partner applications
+    - Create new partners manually
+    - Edit partner settings (credits, branding, status)
+    - Top up partner credits
+    - Delete partners
+    
+    **See:** [Managing Partners](/guides/admin/managing-partners)
+  </Tab>
+  
+  <Tab title="B2C">
+    **Purpose:** Manage end-user accounts
+    
+    **Features:**
+    - View all end users
+    - Edit user profiles
+    - Manually add credits to users
+    - View user generation history
+    - Deactivate/reactivate accounts
+    
+    **Best For:** Customer support, manual credit adjustments
+  </Tab>
+  
+  <Tab title="Styles">
+    **Purpose:** AI style and identity management
+    
+    **Features:**
+    - View all AI styles/identities
+    - Create new styles
+    - Edit prompts and metadata
+    - Upload style preview images
+    - Toggle active/inactive per style
+    - Bulk category management
+    
+    **See:** [Style Management](/guides/admin/style-management)
+  </Tab>
+  
+  <Tab title="Logs">
+    **Purpose:** System activity audit trail
+    
+    **Features:**
+    - View recent platform events
+    - Filter by user, partner, action type
+    - Search logs by keyword
+    - Export logs for analysis
+    
+    **Best For:** Debugging, auditing, compliance
+  </Tab>
+  
+  <Tab title="Settings">
+    **Purpose:** Platform-wide configuration (if available)
+    
+    **Features:**
+    - Payment gateway settings
+    - Email SMTP configuration
+    - Default credit pricing
+    - Feature flags
+    - Maintenance mode
+  </Tab>
+</Tabs>
+
+## Overview Section Breakdown
+
+### System Pulse Indicator
+
+Located at the top of the overview:
+
+- **Green Pulsing Circle**: System operational
+- **Yellow**: Warning state (check logs)
+- **Red**: Critical issue (immediate action needed)
+
+**Click SystemPulse** to see detailed system health:
+- API response times
+- Database connection status
+- Storage availability
+- AI service status
+
+### Platform Statistics
+
+Four main stat cards display:
+
+<Tabs>
+  <Tab title="Total Partners">
+    - **Number**: Count of active partners
+    - **Icon**: Handshake
+    - **Purpose**: Track reseller network growth
+    - **Action**: Click to go to Partners tab
+  </Tab>
+  
+  <Tab title="Total Events (Network)">
+    - **Number**: Sum of all partner events
+    - **Icon**: Calendar/Event
+    - **Purpose**: Measure platform activity
+    - **Trend**: Green if increasing month-over-month
+  </Tab>
+  
+  <Tab title="Credits in Channels">
+    - **Number**: Total unallocated partner credits
+    - **Icon**: Wallet
+    - **Purpose**: Track revenue and liability
+    - **Note**: These are purchased but not yet consumed credits
+  </Tab>
+  
+  <Tab title="Consumption Ratio">
+    - **Percentage**: Average credit usage across partners
+    - **Icon**: Trending Up
+    - **Purpose**: Measure engagement
+    - **Healthy Range**: 60-80% (active usage, not overstocked)
+  </Tab>
+</Tabs>
+
+### B2C Statistics (if B2C is enabled)
+
+- **Total B2C Users**: End user count
+- **Active Users (30d)**: Users with generations in last 30 days
+- **Revenue This Month**: Credit purchases from end users
+- **Avg Credits Per User**: Spending patterns
+
+### Recent Activity Logs
+
+Scrollable list of recent platform events:
+
+- **User Creation**: New accounts
+- **Credit Purchases**: Payment transactions
+- **Partner Approvals**: New partner activations
+- **Generation Milestones**: High-volume events
+- **System Errors**: Failed operations
+
+**Log Item Format:**
+- Timestamp (relative, e.g., "5 minutes ago")
+- Action type (color-coded badge)
+- Actor (user/partner email)
+- Description
+
+## Quick Actions
+
+From the Overview, you can:
+
+- **"New Reseller" Button**: Open partner creation modal
+- **"Add User" Button**: Manually create B2C user
+- **"Manage Styles" Button**: Jump to Styles tab
+- **"View All Logs" Button**: Navigate to Logs tab
+
+## Common Administrator Tasks
+
+### Daily Operations
+
+**Morning Check:**
+1. View Overview tab
+2. Check System Pulse (green?)
+3. Review overnight activity logs
+4. Respond to any errors or warnings
+
+**Throughout Day:**
+- Approve pending partner applications (Partners tab)
+- Handle support tickets (credit adjustments, account issues)
+- Monitor generation volume (Analytics section)
+
+**End of Day:**
+- Review daily stats
+- Check for failed payments or errors
+- Plan partner outreach based on usage patterns
+
+### Weekly Operations
+
+- **Review Partner Performance**: Identify high/low performers
+- **Analyze Style Popularity**: Adjust style availability
+- **Credit Reconciliation**: Ensure financial accuracy
+- **User Growth Analysis**: Track B2C adoption
+
+### Monthly Operations
+
+- **Revenue Reporting**: Export transaction logs
+- **Partner Check-ins**: Reach out to partners
+- **Style Catalog Review**: Add new styles, retire underperformers
+- **System Maintenance**: Updates, backups, security patches
+
+## Dashboard Customization
+
+<Note>
+**Future Feature:** Dashboard widgets and custom views are planned. Currently, the layout is fixed.
+</Note>
+
+## Keyboard Shortcuts
+
+No specific shortcuts configured, but standard browser shortcuts work:
+
+- **Ctrl/Cmd + R**: Refresh dashboard
+- **Ctrl/Cmd + F**: Search within tables
+- **Esc**: Close modals
+
+## Performance Monitoring
+
+### Key Metrics to Watch
+
+**Engagement:**
+- Generations per day (trending up?)
+- Active partners/users ratio
+- Average generations per event
+
+**Financial:**
+- Credits sold vs. consumed
+- Revenue growth month-over-month
+- Partner churn rate
+
+**Technical:**
+- API response times (System Pulse)
+- Error rates in logs
+- Storage usage
+
+### Setting Up Alerts
+
+<Info>
+**Contact Support:** To configure email/SMS alerts for critical events (system down, low storage, high error rates), contact platform support or development team.
+</Info>
+
+## Troubleshooting Common Issues
+
+<AccordionGroup>
+  <Accordion title="System Pulse shows yellow/red">
+    **Immediate Actions:**
+    1. Click SystemPulse for details
+    2. Check Logs tab for errors
+    3. Verify database connectivity
+    4. Check AI service status (Replicate API)
+    5. If persistent, contact development team
+  </Accordion>
+  
+  <Accordion title="Stats not updating">
+    **Solutions:**
+    - Refresh browser (Ctrl+R)
+    - Clear cache and reload
+    - Check if background jobs are running (contact dev)
+    - Verify database queries (check logs)
+  </Accordion>
+  
+  <Accordion title="Can't access certain sections">
+    **Verify:**
+    - Your account has `is_master: true` in profiles table
+    - Database permissions are correct
+    - Browser has no extensions blocking content
+    - Try incognito mode to rule out cache issues
+  </Accordion>
+  
+  <Accordion title="Logs showing unusual activity">
+    **Investigate:**
+    - Filter logs by actor (user email)
+    - Look for patterns (time, action type)
+    - Check for automated bot activity
+    - Review partner account for compromise
+    - Change passwords if suspicious
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+### Account Security
+
+- 🔒 Use strong, unique password
+- 🔒 Enable 2FA (if available)
+- 🔒 Don't share admin credentials
+- 🔒 Log out when not in use
+- 🔒 Use separate admin account (not personal)
+
+### Operational Security
+
+- ⚠️ Always verify before deleting partners/users
+- ⚠️ Document major changes in external log
+- ⚠️ Double-check credit adjustments
+- ⚠️ Test style changes in staging if possible
+- ⚠️ Backup critical data before bulk operations
+
+### Audit Compliance
+
+- 📝 Regularly review activity logs
+- 📝 Export logs monthly for archival
+- 📝 Investigate anomalies promptly
+- 📝 Maintain documentation of admin actions
+
+## Best Practices Summary
+
+### Do:
+
+- ✅ Check System Pulse daily
+- ✅ Respond to partner applications within 24 hours
+- ✅ Monitor logs for errors
+- ✅ Keep style catalog up-to-date
+- ✅ Communicate with partners proactively
+- ✅ Document configuration changes
+
+### Don't:
+
+- ❌ Delete data without confirmation
+- ❌ Ignore yellow/red system status
+- ❌ Make bulk changes without testing
+- ❌ Share admin credentials
+- ❌ Skip log reviews
+- ❌ Change settings without understanding impact
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Manage Partners" icon="handshake" href="/guides/admin/managing-partners">
+    Approve, edit, and oversee partner accounts
+  </Card>
+  <Card title="Platform Analytics" icon="chart-line" href="/guides/admin/analytics">
+    Deep-dive into usage metrics
+  </Card>
+  <Card title="Style Management" icon="palette" href="/guides/admin/style-management">
+    Create and manage AI identities
+  </Card>
+</CardGroup>

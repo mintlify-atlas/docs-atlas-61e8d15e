@@ -1,122 +1,163 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Creativa Labs Cabina",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#135bec",
+    "light": "#6b9fff",
+    "dark": "#0a3d9e"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/MetalabSA/creativa-labs-cabina"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/MetalabSA/creativa-labs-cabina"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Overview",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "architecture"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "concepts/business-models",
+              "concepts/multi-tier-system",
+              "concepts/credit-system",
+              "concepts/events"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "User Guides",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "For End Users",
             "pages": [
-              "api-reference/introduction"
+              "guides/user/getting-started",
+              "guides/user/purchasing-credits",
+              "guides/user/generating-photos",
+              "guides/user/gallery"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "For Partners",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "guides/partner/onboarding",
+              "guides/partner/creating-events",
+              "guides/partner/managing-credits",
+              "guides/partner/white-label"
+            ]
+          },
+          {
+            "group": "For Event Organizers",
+            "pages": [
+              "guides/organizer/event-setup",
+              "guides/organizer/configuring-styles",
+              "guides/organizer/qr-codes",
+              "guides/organizer/live-gallery"
+            ]
+          },
+          {
+            "group": "For Administrators",
+            "pages": [
+              "guides/admin/master-dashboard",
+              "guides/admin/managing-partners",
+              "guides/admin/analytics",
+              "guides/admin/style-management"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
+            "group": "AI Generation",
+            "pages": [
+              "features/ai-styles",
+              "features/style-categories",
+              "features/image-processing"
+            ]
+          },
+          {
+            "group": "Event Management",
+            "pages": [
+              "features/event-creation",
+              "features/event-configuration",
+              "features/guest-experience",
+              "features/event-gallery"
+            ]
+          },
+          {
+            "group": "Dashboards",
+            "pages": [
+              "features/master-dashboard",
+              "features/partner-dashboard",
+              "features/client-dashboard"
+            ]
+          },
+          {
+            "group": "Monetization",
+            "pages": [
+              "features/credit-packs",
+              "features/payment-integration",
+              "features/pricing-tiers"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Technical",
+        "groups": [
+          {
+            "group": "Setup & Deployment",
+            "pages": [
+              "technical/installation",
+              "technical/environment-variables",
+              "technical/deployment"
+            ]
+          },
+          {
+            "group": "Database",
+            "pages": [
+              "technical/database-schema",
+              "technical/migrations",
+              "technical/rls-policies"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/edge-functions",
+              "api/cabina-vision",
+              "api/payment-webhook"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "technical/supabase-integration",
+              "technical/mercadopago-integration",
+              "technical/ai-model-integration"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

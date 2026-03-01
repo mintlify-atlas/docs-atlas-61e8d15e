@@ -1,0 +1,397 @@
+---
+title: 'Partner Dashboard'
+description: 'Event management, client accounts, and business analytics for partners'
+icon: 'briefcase'
+---
+
+Partners manage events, clients, branding, and finances through a comprehensive dashboard designed for photo booth businesses.
+
+## Dashboard Access
+
+Partners access their dashboard at:
+```
+https://cabina.creativa.lab/dashboard.html
+```
+
+<Info>
+  Requires `role: 'partner'` or `is_master: true` in user profile.
+</Info>
+
+## Overview Section
+
+### Key Metrics
+
+<CardGroup cols={3}>
+  <Card title="Total Events" icon="calendar">
+    Active and completed events count
+  </Card>
+  <Card title="Total Clients" icon="users">
+    Managed client accounts
+  </Card>
+  <Card title="Credit Balance" icon="zap">
+    Available credits for events
+  </Card>
+  <Card title="This Month Generations" icon="image">
+    AI photos created in current month
+  </Card>
+  <Card title="Total Revenue" icon="dollar-sign">
+    Lifetime earnings (future)
+  </Card>
+  <Card title="Active Events Today" icon="calendar-check">
+    Currently running events
+  </Card>
+</CardGroup>
+
+### Quick Actions
+
+<Steps>
+  <Step title="Create Event">
+    Launch new photo booth event with one click
+  </Step>
+  <Step title="Add Client">
+    Invite new client account to platform
+  </Step>
+  <Step title="View Reports">
+    Access detailed analytics and downloads
+  </Step>
+</Steps>
+
+## Events Management
+
+### Event List View
+
+All partner events displayed with:
+- Event name and slug
+- Credit usage: `47/100` (used/allocated)
+- Generation count
+- Status badge (Active/Ended/Upcoming)
+- Quick actions: Edit, QR Code, Gallery, Delete
+
+### Event Actions
+
+<Tabs>
+  <Tab title="Edit Event">
+    Modify event settings:
+    - Name and slug
+    - Selected AI styles
+    - Branding (logo, color)
+    - Start/end dates
+    - Welcome text
+  </Tab>
+  <Tab title="Top-Up Credits">
+    Add more credits to running event:
+    ```javascript
+    const handleTopUpEvent = async (eventId, amount) => {
+      // Deduct from partner balance
+      const newPartnerBalance = partner.credits - amount;
+      
+      // Add to event allocation
+      const newEventCredits = event.credits_allocated + amount;
+      
+      // Atomic transaction
+      await supabase.rpc('event_credit_transfer', {
+        partner_id: partnerId,
+        event_id: eventId,
+        amount: amount
+      });
+    };
+    ```
+  </Tab>
+  <Tab title="Download QR Code">
+    Generate event QR code as PNG or SVG:
+    ```javascript
+    <QRCodeSVG
+      value={`${baseURL}?event=${event.event_slug}`}
+      size={512}
+      level="H"
+      includeMargin={true}
+    />
+    ```
+  </Tab>
+  <Tab title="View Gallery">
+    Open event photo gallery in new tab
+  </Tab>
+  <Tab title="Delete Event">
+    Permanently remove event (with confirmation)
+  </Tab>
+</Tabs>
+
+### Event Creation Workflow
+
+<Steps>
+  <Step title="Click Create Event">
+    Open event creation modal from events section
+  </Step>
+  <Step title="Basic Information">
+    - Event name (e.g., "Boda de Ana y Juan")
+    - Auto-generated slug
+    - Credit allocation (deducted from partner balance)
+  </Step>
+  <Step title="Dates (Optional)">
+    - Start date with time
+    - End date with time
+    - Toggle pre-event welcome screen
+  </Step>
+  <Step title="Select Styles">
+    Choose AI styles available to guests:
+    - Browse by category
+    - Search by name
+    - Select all or individual styles
+  </Step>
+  <Step title="Branding">
+    - Upload event logo
+    - Set primary color
+    - Write welcome message
+  </Step>
+  <Step title="Create & Share">
+    Event created instantly with unique link and QR code
+  </Step>
+</Steps>
+
+## Clients Management
+
+### Client Accounts
+
+Partners can create and manage client accounts for:
+- Recurring event customers
+- Prepaid credit allocations
+- Branded sub-accounts
+- White-label experiences
+
+### Creating Clients
+
+<ParamField path="full_name" type="string" required>
+  Client's business or personal name
+</ParamField>
+
+<ParamField path="email" type="string" required>
+  Client login email (invitation sent)
+</ParamField>
+
+<ParamField path="initial_credits" type="number" default="0">
+  Starting credit balance
+</ParamField>
+
+<ParamField path="partner_id" type="string" auto>
+  Automatically linked to creating partner
+</ParamField>
+
+```javascript
+const handleCreateClient = async (clientData) => {
+  // Create auth user
+  const { data: authData } = await supabase.auth.admin.createUser({
+    email: clientData.email,
+    email_confirm: true
+  });
+  
+  // Create profile
+  await supabase.from('profiles').insert({
+    id: authData.user.id,
+    full_name: clientData.full_name,
+    email: clientData.email,
+    credits: clientData.initial_credits,
+    role: 'client',
+    partner_id: partnerId
+  });
+  
+  // Send invitation email
+  await supabase.functions.invoke('send-invitation', {
+    email: clientData.email,
+    partner_name: partner.company_name
+  });
+};
+```
+
+### Client Top-Up
+
+Transfer credits from partner to client:
+
+<Steps>
+  <Step title="Select Client">
+    Click top-up icon on client row
+  </Step>
+  <Step title="Enter Amount">
+    Specify credits to transfer (1-10000)
+  </Step>
+  <Step title="Confirm Transfer">
+    Credits deducted from partner, added to client atomically
+  </Step>
+  <Step title="Transaction Logged">
+    Recorded in transactions table for audit trail
+  </Step>
+</Steps>
+
+## Branding Panel
+
+Configure default branding for all partner events:
+
+### Logo Management
+
+<Tabs>
+  <Tab title="Upload">
+    Upload partner logo to Supabase Storage:
+    ```javascript
+    const handleLogoUpload = async (file) => {
+      const fileName = `partner-logos/${partnerId}/${Date.now()}-${file.name}`;
+      
+      const { data, error } = await supabase.storage
+        .from('public-assets')
+        .upload(fileName, file);
+      
+      const publicURL = supabase.storage
+        .from('public-assets')
+        .getPublicUrl(data.path).data.publicUrl;
+      
+      await updateBranding({ logo_url: publicURL });
+    };
+    ```
+  </Tab>
+  <Tab title="Display">
+    Logo appears:
+    - Top-left of all partner events
+    - Email notifications
+    - QR code downloads (future)
+    - Invoices (future)
+  </Tab>
+</Tabs>
+
+### Color Theming
+
+Set default primary color:
+```javascript
+config: {
+  primary_color: "#7f13ec"  // Hex color code
+}
+```
+
+Affects all partner events unless overridden per-event:
+- Button backgrounds
+- Accent highlights
+- Progress bars
+- Link colors
+- Glow effects
+
+### Style Presets
+
+Choose default AI styles for events:
+- Quick-select favorite styles
+- Create style "packages" (e.g., "Wedding Pack")
+- Apply to new events automatically
+
+## Wallet Section
+
+### Credit Balance
+
+Current available credits for:
+- Creating new events
+- Topping up existing events
+- Allocating to clients
+
+### Transaction History
+
+<Tabs>
+  <Tab title="Purchases">
+    Credits bought from platform:
+    - Date & time
+    - Amount
+    - Payment method
+    - Invoice number
+  </Tab>
+  <Tab title="Allocations">
+    Credits assigned to events:
+    - Event name
+    - Amount allocated
+    - Remaining in event
+    - Date created
+  </Tab>
+  <Tab title="Transfers">
+    Credits sent to clients:
+    - Client name
+    - Amount
+    - Date
+    - Current client balance
+  </Tab>
+</Tabs>
+
+### Credit Purchase
+
+<Warning>
+  Credit purchases are currently manual. Contact platform admin to purchase credits.
+</Warning>
+
+Future: Automated payment integration
+```javascript
+const handlePurchaseCredits = async (amount, paymentMethod) => {
+  const { data } = await supabase.functions.invoke('mercadopago-payment', {
+    body: {
+      partner_id: partnerId,
+      credits: amount,
+      price: calculatePrice(amount),
+      redirect_url: `${window.location.origin}/dashboard.html`
+    }
+  });
+  
+  // Redirect to payment gateway
+  window.location.href = data.init_point;
+};
+```
+
+## Analytics & Reports
+
+### Event Performance
+
+Per-event metrics:
+- Total generations
+- Credit efficiency (generations per credit)
+- Peak usage times
+- Most popular styles
+- Average session duration
+
+### Style Popularity
+
+Ranking of AI styles by:
+- Total usage count
+- Guest preferences
+- Conversion rate
+
+### Export Options
+
+<CardGroup cols={2}>
+  <Card title="CSV Export" icon="file-text">
+    Download event data as spreadsheet
+  </Card>
+  <Card title="Photo ZIP" icon="download">
+    Bulk download all event photos
+  </Card>
+  <Card title="QR Codes" icon="qr-code">
+    Print-ready QR code sheets
+  </Card>
+  <Card title="Reports PDF" icon="file">
+    Formatted analytics report
+  </Card>
+</CardGroup>
+
+## Real-Time Updates
+
+Dashboard data syncs in real-time:
+
+```javascript
+const channel = supabase
+  .channel(`partner_${partnerId}`)
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'events',
+    filter: `partner_id=eq.${partnerId}`
+  }, (payload) => {
+    // Update events list
+    fetchPartnerData();
+  })
+  .subscribe();
+```
+
+Updates include:
+- New generations in events
+- Credit balance changes
+- Client registrations
+- Event modifications

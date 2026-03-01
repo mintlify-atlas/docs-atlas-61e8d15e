@@ -1,0 +1,407 @@
+---
+title: Database Migrations
+description: Manage database schema changes and migrations in Cabina
+---
+
+## Overview
+
+Cabina uses Supabase migrations to version-control database schema changes. All migrations are stored in `supabase/migrations/` as timestamped SQL files.
+
+## Migration Files
+
+### Existing Migrations
+
+#### 20260210_api_key_pool.sql
+
+Creates the API key pool table for load balancing AI requests.
+
+```sql supabase/migrations/20260210_api_key_pool.sql
+-- Tabla para el Pool de API Keys de KIE.AI (Load Balancer)
+CREATE TABLE IF NOT EXISTS public.api_key_pool (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    api_key TEXT NOT NULL UNIQUE,
+    account_name TEXT,
+    is_active BOOLEAN DEFAULT true,
+    last_used_at TIMESTAMPTZ DEFAULT now(),
+    usage_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Habilitar RLS
+ALTER TABLE public.api_key_pool ENABLE ROW LEVEL SECURITY;
+
+-- Política de Seguridad: Solo el rol de servicio puede acceder
+CREATE POLICY "Service role only" ON public.api_key_pool
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+```
+
+<Note>
+This migration creates a load balancer that rotates between multiple AI API keys to distribute usage and avoid rate limits.
+</Note>
+
+## Creating New Migrations
+
+### Using Supabase CLI
+
+<Steps>
+  <Step title="Generate Migration File">
+    ```bash
+    supabase migration new add_user_preferences
+    ```
+    
+    This creates: `supabase/migrations/20260315_add_user_preferences.sql`
+  </Step>
+
+  <Step title="Write Migration SQL">
+    ```sql
+    -- Add user preferences column
+    ALTER TABLE profiles ADD COLUMN preferences JSONB DEFAULT '{}'::jsonb;
+    
+    -- Add index for JSONB queries
+    CREATE INDEX idx_profiles_preferences ON profiles USING GIN (preferences);
+    ```
+  </Step>
+
+  <Step title="Test Locally">
+    ```bash
+    # Reset local database and apply all migrations
+    supabase db reset
+    
+    # Or apply new migrations only
+    supabase migration up
+    ```
+  </Step>
+
+  <Step title="Push to Production">
+    ```bash
+    # Link to your project (first time only)
+    supabase link --project-ref your-project-ref
+    
+    # Push migrations
+    supabase db push
+    ```
+  </Step>
+</Steps>
+
+### Manual Migration Creation
+
+You can also create migration files manually:
+
+```bash
+# Create file with timestamp
+touch supabase/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name.sql
+```
+
+## Common Migration Patterns
+
+### Adding a Column
+
+```sql
+-- Add a new column with default value
+ALTER TABLE events ADD COLUMN max_guests INTEGER DEFAULT 100;
+
+-- Add column only if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'events' AND column_name = 'max_guests'
+    ) THEN
+        ALTER TABLE events ADD COLUMN max_guests INTEGER DEFAULT 100;
+    END IF;
+END $$;
+```
+
+### Creating an Index
+
+```sql
+-- Create index if not exists
+CREATE INDEX IF NOT EXISTS idx_generations_created_at 
+  ON generations(created_at DESC);
+
+-- Partial index for active events only
+CREATE INDEX idx_events_active 
+  ON events(is_active) 
+  WHERE is_active = TRUE;
+```
+
+### Adding Foreign Keys
+
+```sql
+-- Add foreign key constraint
+ALTER TABLE events 
+  ADD CONSTRAINT fk_events_partner 
+  FOREIGN KEY (partner_id) 
+  REFERENCES partners(id) 
+  ON DELETE CASCADE;
+```
+
+### Creating Functions
+
+```sql
+-- Function to auto-update timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to call function
+CREATE TRIGGER update_events_updated_at
+    BEFORE UPDATE ON events
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+```
+
+### Modifying Existing Data
+
+```sql
+-- Update all existing records
+UPDATE profiles 
+  SET role = 'user' 
+  WHERE role IS NULL;
+
+-- Backfill computed column
+UPDATE events 
+  SET credits_remaining = credits_allocated - credits_used;
+```
+
+## Migration Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always use transactions" icon="shield-check">
+    Wrap migrations in `BEGIN`/`COMMIT` blocks when possible
+  </Card>
+  
+  <Card title="Make migrations idempotent" icon="rotate">
+    Use `IF NOT EXISTS` to allow safe re-runs
+  </Card>
+  
+  <Card title="Test on staging first" icon="flask">
+    Never run untested migrations on production
+  </Card>
+  
+  <Card title="Keep migrations small" icon="minimize">
+    One logical change per migration file
+  </Card>
+</CardGroup>
+
+### Example: Idempotent Migration
+
+```sql
+-- Safe to run multiple times
+BEGIN;
+
+-- Create table if not exists
+CREATE TABLE IF NOT EXISTS favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  generation_id UUID NOT NULL REFERENCES generations(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, generation_id)
+);
+
+-- Add column if not exists
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'favorites' AND column_name = 'note'
+  ) THEN
+    ALTER TABLE favorites ADD COLUMN note TEXT;
+  END IF;
+END $$;
+
+-- Enable RLS
+ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policy if exists
+DROP POLICY IF EXISTS "Users can manage their own favorites" ON favorites;
+
+-- Create policy
+CREATE POLICY "Users can manage their own favorites" ON favorites
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+COMMIT;
+```
+
+## Rollback Strategies
+
+### Option 1: Down Migrations
+
+Create a corresponding rollback file:
+
+```sql supabase/migrations/20260315_add_user_preferences_down.sql
+-- Rollback migration
+DROP INDEX IF EXISTS idx_profiles_preferences;
+ALTER TABLE profiles DROP COLUMN IF EXISTS preferences;
+```
+
+Apply rollback:
+
+```bash
+psql -h db.project.supabase.co -U postgres -f migrations/..._down.sql
+```
+
+### Option 2: Database Reset
+
+<Warning>
+This will delete ALL data. Only use in development.
+</Warning>
+
+```bash
+# Local development only
+supabase db reset
+```
+
+### Option 3: Point-in-Time Recovery
+
+For production, use Supabase's PITR feature (Pro plan):
+
+1. Go to Supabase Dashboard → Database → Backups
+2. Select restore point before migration
+3. Create new project from backup
+
+## Monitoring Migrations
+
+### Check Applied Migrations
+
+```sql
+-- View migration history
+SELECT * FROM supabase_migrations.schema_migrations
+ORDER BY version DESC;
+```
+
+### Verify Schema Changes
+
+```sql
+-- List all tables
+SELECT tablename 
+FROM pg_tables 
+WHERE schemaname = 'public';
+
+-- Describe table structure
+SELECT 
+  column_name, 
+  data_type, 
+  is_nullable, 
+  column_default
+FROM information_schema.columns
+WHERE table_name = 'events';
+```
+
+## Seeding Data
+
+### Seed File
+
+Create `supabase/seed.sql` for initial data:
+
+```sql supabase/seed.sql
+-- Insert default styles
+INSERT INTO styles_metadata (id, label, category, subcategory, is_premium)
+VALUES 
+  ('pb_a', 'Thomas Shelby', 'series', 'Peaky Blinders', true),
+  ('suit_a', 'Harvey Specter', 'series', 'La Ley de los Audaces', false),
+  ('jhonw_a', 'Baba Yaga', 'cinema', 'John Wick', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert master admin
+INSERT INTO profiles (id, email, is_master, role)
+VALUES 
+  ('00000000-0000-0000-0000-000000000001', 'admin@creativalabs.com', true, 'master')
+ON CONFLICT (id) DO NOTHING;
+```
+
+Run seed:
+
+```bash
+supabase db seed
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml .github/workflows/migrations.yml
+name: Run Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      
+      - name: Link to Supabase
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      
+      - name: Push migrations
+        run: supabase db push
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Migration fails with permission error">
+    Ensure you're using the correct Supabase project:
+    
+    ```bash
+    # Re-link to project
+    supabase link --project-ref your-correct-ref
+    ```
+  </Accordion>
+
+  <Accordion title="Duplicate key errors">
+    Your migration isn't idempotent. Use:
+    - `CREATE TABLE IF NOT EXISTS`
+    - `DROP POLICY IF EXISTS` before `CREATE POLICY`
+    - `DO $$ ... END $$` blocks for conditional logic
+  </Accordion>
+
+  <Accordion title="Schema cache errors">
+    Reload PostgREST schema cache:
+    
+    ```sql
+    NOTIFY pgrst, 'reload schema';
+    ```
+  </Accordion>
+
+  <Accordion title="Migration applied but changes not visible">
+    Check RLS policies - you may not have permission to see the data.
+    
+    ```sql
+    -- Temporarily disable RLS (development only!)
+    ALTER TABLE table_name DISABLE ROW LEVEL SECURITY;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="RLS Policies" icon="shield" href="/technical/rls-policies">
+    Secure your data with Row Level Security
+  </Card>
+  <Card title="Database Schema" icon="table" href="/technical/database-schema">
+    Review the complete schema
+  </Card>
+</CardGroup>

@@ -1,0 +1,320 @@
+---
+title: 'Client Dashboard'
+description: 'Simplified interface for partner-managed client accounts'
+icon: 'user-circle'
+---
+
+Clients are partner-managed accounts with limited dashboard access, focusing on their allocated credits and event creation capabilities.
+
+## Client Account Structure
+
+Clients are created and managed by partners:
+
+```typescript
+interface ClientProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  credits: number;          // Allocated by partner
+  role: 'client';
+  partner_id: string;       // Linked to partner
+  total_generations: number;
+  created_at: timestamp;
+}
+```
+
+<Info>
+  Clients cannot purchase credits directly - all credit allocations come from their parent partner account.
+</Info>
+
+## Dashboard Features
+
+### Limited Navigation
+
+Client dashboard includes only:
+
+<CardGroup cols={2}>
+  <Card title="My Events" icon="calendar">
+    Events created by the client
+  </Card>
+  <Card title="Credit Balance" icon="zap">
+    Current available credits
+  </Card>
+  <Card title="Profile Settings" icon="settings">
+    Basic account information
+  </Card>
+  <Card title="Generation History" icon="history">
+    Past AI photo generations
+  </Card>
+</CardGroup>
+
+### Credit Display
+
+Always-visible credit counter:
+```javascript
+<div className="flex items-center gap-2">
+  <Zap className="w-5 h-5 text-yellow-400" />
+  <span className="font-bold">{profile.credits.toLocaleString()}</span>
+  <span className="text-xs text-white/40">créditos</span>
+</div>
+```
+
+<Warning>
+  When credits reach 0, clients cannot create new events or generate photos. Contact partner for top-up.
+</Warning>
+
+## Event Management
+
+### Creating Events
+
+Same workflow as partners, but:
+- Credits deducted from client balance (not partner)
+- Client branding applied (if configured)
+- Limited to client's style access
+
+```javascript
+const handleCreateEvent = async (eventData) => {
+  // Verify client has sufficient credits
+  if (profile.credits < eventData.credits_allocated) {
+    showToast('Créditos insuficientes. Contacta a tu proveedor.', 'error');
+    return;
+  }
+  
+  // Create event
+  const { data, error } = await supabase
+    .from('events')
+    .insert({
+      ...eventData,
+      client_id: profile.id,
+      partner_id: profile.partner_id  // Maintain partner link
+    });
+  
+  // Deduct credits
+  await supabase
+    .from('profiles')
+    .update({ 
+      credits: profile.credits - eventData.credits_allocated 
+    })
+    .eq('id', profile.id);
+};
+```
+
+### Event Limitations
+
+Clients have restricted event controls:
+
+<Tabs>
+  <Tab title="Can Do">
+    - Create events from credit balance
+    - Edit event branding
+    - Select AI styles
+    - Download QR codes
+    - View event gallery
+    - Monitor credit usage
+  </Tab>
+  <Tab title="Cannot Do">
+    - Purchase credits directly
+    - Access partner dashboard
+    - Create sub-client accounts
+    - View partner analytics
+    - Modify partner branding
+    - Top-up own credits
+  </Tab>
+</Tabs>
+
+## Partner Relationship
+
+### Linked Partner Info
+
+Client profile shows parent partner:
+```javascript
+const PartnerInfo = ({ profile }) => {
+  const [partner, setPartner] = useState(null);
+  
+  useEffect(() => {
+    supabase
+      .from('partners')
+      .select('company_name, contact_email')
+      .eq('id', profile.partner_id)
+      .single()
+      .then(({ data }) => setPartner(data));
+  }, [profile.partner_id]);
+  
+  return (
+    <div className="bg-white/5 p-4 rounded-xl">
+      <p className="text-xs text-white/40 mb-1">Proveedor</p>
+      <p className="font-bold">{partner?.company_name}</p>
+      <a href={`mailto:${partner?.contact_email}`} className="text-xs text-accent">
+        Contactar
+      </a>
+    </div>
+  );
+};
+```
+
+### Credit Requests
+
+Clients can request credits from partner:
+
+<Steps>
+  <Step title="Low Credit Alert">
+    Notification when balance drops below threshold
+  </Step>
+  <Step title="Contact Partner">
+    Click "Request Credits" button to email partner
+  </Step>
+  <Step title="Partner Processes">
+    Partner receives request and can top-up via dashboard
+  </Step>
+  <Step title="Credits Added">
+    Client receives notification when credits arrive
+  </Step>
+</Steps>
+
+## Simplified Interface
+
+### No Financial Features
+
+Client dashboard excludes:
+- Payment methods
+- Invoice history
+- Commission rates
+- Revenue analytics
+- Wallet management
+
+### Focused UX
+
+Streamlined for event creation:
+```javascript
+const ClientDashboard = ({ profile }) => {
+  return (
+    <div className="max-w-4xl mx-auto">  {/* Narrower than partner dashboard */}
+      <CreditBalance credits={profile.credits} />
+      <EventsList clientId={profile.id} />
+      <QuickCreateEvent />
+    </div>
+  );
+};
+```
+
+## Inherited Branding
+
+Clients inherit partner branding settings:
+
+<ParamField path="logo_url" type="string" inherited>
+  Partner logo displayed in client events
+</ParamField>
+
+<ParamField path="primary_color" type="string" inherited>
+  Partner brand color applied to all UI
+</ParamField>
+
+<ParamField path="style_presets" type="array" inherited>
+  Partner's default style selections
+</ParamField>
+
+Clients can override on per-event basis:
+```javascript
+event.config = {
+  ...partner.config,           // Inherit partner defaults
+  ...clientCustomizations     // Override with client prefs
+}
+```
+
+## Notifications
+
+Client-specific notifications:
+
+<CardGroup cols={2}>
+  <Card title="Low Credits" icon="alert-triangle">
+    Alert when balance drops below 100 credits
+  </Card>
+  <Card title="Event Ending Soon" icon="clock">
+    Reminder 24h before event end date
+  </Card>
+  <Card title="Credits Added" icon="plus-circle">
+    Notification when partner tops up balance
+  </Card>
+  <Card title="Event Milestones" icon="star">
+    Celebrate 50, 100, 500 generations
+  </Card>
+</CardGroup>
+
+## Usage Analytics
+
+Limited analytics for clients:
+
+### Personal Stats
+- Total events created
+- Total generations
+- Credits used vs. allocated
+- Most popular styles
+
+### Event Performance
+Per-event breakdown:
+```javascript
+const eventStats = {
+  generations_count: 142,
+  credits_used: 142,
+  credits_remaining: 58,
+  most_used_style: "John Wick - Baba Yaga",
+  peak_hour: "20:00-21:00",
+  average_session: "3.5 minutes"
+};
+```
+
+## Profile Settings
+
+### Editable Fields
+
+<ParamField path="full_name" type="string" editable>
+  Display name
+</ParamField>
+
+<ParamField path="avatar_url" type="string" editable>
+  Profile picture (future)
+</ParamField>
+
+### Readonly Fields
+
+<ParamField path="email" type="string" readonly>
+  Login email (contact partner to change)
+</ParamField>
+
+<ParamField path="role" type="string" readonly>
+  Account type: `client`
+</ParamField>
+
+<ParamField path="partner_id" type="string" readonly>
+  Parent partner account
+</ParamField>
+
+## Support & Help
+
+Client dashboard includes:
+
+<Tabs>
+  <Tab title="Contact Partner">
+    Direct email link to parent partner support
+  </Tab>
+  <Tab title="Documentation">
+    Access to client-specific guides
+  </Tab>
+  <Tab title="Video Tutorials">
+    Step-by-step event creation walkthroughs
+  </Tab>
+  <Tab title="FAQ">
+    Common questions about credit usage and events
+  </Tab>
+</Tabs>
+
+## Future Enhancements
+
+<Note>
+  Planned features for client accounts:
+  - Self-service credit requests
+  - Favorite style presets
+  - Event templates
+  - Guest list management
+  - Custom email notifications
+</Note>

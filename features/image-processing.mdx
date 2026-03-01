@@ -1,0 +1,144 @@
+---
+title: 'Image Processing'
+description: 'Advanced AI image generation with aspect ratios and quality optimization'
+icon: 'image'
+---
+
+Cabina's image processing pipeline handles photo capture, optimization, AI transformation, and delivery with production-grade quality controls.
+
+## Capture & Optimization
+
+### Camera Interface
+WebRTC-based camera capture with automatic device detection:
+```javascript
+const stream = await navigator.mediaDevices.getUserMedia({
+  video: { 
+    facingMode: 'user', 
+    width: { ideal: 1280 }, 
+    height: { ideal: 720 } 
+  }
+});
+```
+
+### Smart Resizing
+Automatic optimization prevents oversized base64 encoding:
+```javascript
+const MAX_DIM = 1024;
+if (width > MAX_DIM || height > MAX_DIM) {
+  // Proportional resize while maintaining aspect ratio
+}
+canvas.toDataURL('image/jpeg', 0.8); // 80% quality balance
+```
+
+<Info>
+  Images are compressed to 80% quality (0.8) - the optimal balance between file size and AI training detail.
+</Info>
+
+## Aspect Ratio Options
+
+Three professional aspect ratios available:
+
+<CardGroup cols={3}>
+  <Card title="9:16 Portrait" icon="smartphone">
+    Optimized for Instagram Stories, TikTok, and mobile viewing
+  </Card>
+  <Card title="16:9 Landscape" icon="monitor">
+    Perfect for YouTube thumbnails, presentations, and desktop backgrounds
+  </Card>
+  <Card title="4:5 Classic" icon="instagram">
+    Instagram feed standard ratio
+  </Card>
+</CardGroup>
+
+## AI Generation Pipeline
+
+### Edge Function Processing
+Images are processed through the `cabina-vision` Edge Function:
+
+```typescript
+const { data } = await supabase.functions.invoke('cabina-vision', {
+  body: {
+    user_photo: capturedImage,      // Base64 JPEG
+    model_id: selectedStyle,         // Style identifier
+    aspect_ratio: aspectRatio,       // 9:16, 16:9, or 4:5
+    user_id: userId,
+    event_id: eventId
+  }
+});
+```
+
+### Polling & Timeout Handling
+- Initial request timeout: 60 seconds
+- Automatic polling fallback for long-running jobs
+- "VAR mode" notification for connection issues
+- Background processing support
+
+### Progress Indicators
+
+Dynamic progress bar with intelligent estimates:
+```javascript
+// 0-5s: 0-30% (initial processing)
+// 5-25s: 30-80% (AI generation)
+// 25-60s: 80-95% (finalization)
+// 60s+: 95-99% (extended processing)
+```
+
+## Output Formats
+
+### Supported Formats
+- **PNG** (default) - Lossless quality, larger file size
+- **JPG** - Compressed, faster download
+
+### Resolution Options
+- **1K** - 1024px on longest side
+- **2K** - 2048px (future enhancement)
+- **4K** - 4096px (future enhancement)
+
+## Download & Share
+
+### Mobile-Optimized Sharing
+```javascript
+if (isMobile && navigator.share && navigator.canShare({ files: [file] })) {
+  await navigator.share({
+    files: [file],
+    title: 'Mi Foto Creativa',
+    text: '¡Mira mi foto generada con IA por Creativa Labs!'
+  });
+}
+```
+
+### Desktop Download
+Direct blob download with proper CORS handling:
+```javascript
+const response = await fetch(resultImage, { mode: 'cors' });
+const blob = await response.blob();
+const url = window.URL.createObjectURL(blob);
+```
+
+## Print Functionality
+
+Optimized print preview window:
+- Auto-opens print dialog
+- Maintains aspect ratio
+- Maximum quality output
+- Responsive to printer settings
+
+## Error Handling
+
+<Warning>
+  Connection timeout errors trigger "VAR mode" - the generation continues in the cloud while users can browse other styles.
+</Warning>
+
+### Credit Refund Logic
+- Failed generations automatically refund credits
+- Timeout errors preserve credits
+- Event credits deducted atomically in Edge Function
+- User credits deducted optimistically with rollback
+
+## Performance Optimizations
+
+1. **Image Compression**: 80% JPEG quality reduces payload by ~60%
+2. **Max Dimension Cap**: 1024px prevents excessive memory usage
+3. **Canvas Rendering**: Hardware-accelerated preview
+4. **Blob Conversion**: Efficient memory management
+5. **Lazy Stream Cleanup**: Proper camera resource disposal

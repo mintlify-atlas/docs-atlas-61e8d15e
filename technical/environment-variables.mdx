@@ -1,0 +1,267 @@
+---
+title: Environment Variables
+description: Complete reference for all environment variables required by Cabina
+---
+
+## Overview
+
+Cabina uses environment variables for configuration across different services. This guide covers all required and optional variables.
+
+## Frontend Variables
+
+### Supabase Connection
+
+<ParamField path="VITE_SUPABASE_URL" type="string" required>
+  Your Supabase project URL
+  
+  **Example:** `https://elesttjfwfhvzdvldytn.supabase.co`
+  
+  **Where to find:** Supabase Dashboard → Settings → API → Project URL
+</ParamField>
+
+<ParamField path="VITE_SUPABASE_ANON_KEY" type="string" required>
+  Supabase anonymous/public API key
+  
+  **Example:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+  
+  **Where to find:** Supabase Dashboard → Settings → API → anon public key
+  
+  <Warning>This key is safe to expose in client-side code due to RLS policies</Warning>
+</ParamField>
+
+### AI Integration
+
+<ParamField path="GEMINI_API_KEY" type="string" required>
+  Google Gemini API key for AI features
+  
+  **Example:** `AIzaSyD...`
+  
+  **Where to find:** [Google AI Studio](https://makersuite.google.com/app/apikey)
+  
+  <Note>Used for vision analysis and content generation features</Note>
+</ParamField>
+
+## Edge Function Variables
+
+These variables are configured in Supabase Dashboard → Edge Functions → Settings.
+
+### Supabase Service
+
+<ParamField path="SUPABASE_URL" type="string" required>
+  Supabase project URL (server-side)
+  
+  **Example:** `https://elesttjfwfhvzdvldytn.supabase.co`
+  
+  **Auto-injected:** Yes (available by default in Edge Functions)
+</ParamField>
+
+<ParamField path="SUPABASE_SERVICE_ROLE_KEY" type="string" required>
+  Supabase service role key with elevated permissions
+  
+  **Example:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+  
+  **Where to find:** Supabase Dashboard → Settings → API → service_role key
+  
+  <Warning>Keep this secret! Never expose in client-side code. Bypasses RLS.</Warning>
+</ParamField>
+
+### Payment Integration
+
+<ParamField path="MP_ACCESS_TOKEN" type="string" required>
+  Mercado Pago access token for payment processing
+  
+  **Example:** `APP_USR-1234567890123456-123456-abcdef1234567890...`
+  
+  **Where to find:** 
+  1. Go to [Mercado Pago Developers](https://www.mercadopago.com.ar/developers)
+  2. Navigate to Your integrations → Credentials
+  3. Copy the Production or Test access token
+  
+  <Tip>Use test credentials during development</Tip>
+</ParamField>
+
+### AI Model Integration
+
+<ParamField path="BANANA_API_KEY" type="string" required>
+  Kie.ai (Banana) API key for image generation
+  
+  **Example:** `e12c19f419743e747757b4f164d55e87`
+  
+  **Where to find:** Kie.ai Dashboard → API Keys
+  
+  **Used by:** `cabina-vision` edge function
+</ParamField>
+
+## Local Development Setup
+
+### .env.local Template
+
+Create this file in your project root:
+
+```bash .env.local
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# AI Integration
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+### Supabase Edge Functions Secrets
+
+Set secrets using the Supabase CLI:
+
+```bash
+# Payment integration
+supabase secrets set MP_ACCESS_TOKEN=your-mercadopago-token
+
+# AI model
+supabase secrets set BANANA_API_KEY=your-kie-ai-key
+```
+
+Or via the Supabase Dashboard:
+
+1. Go to Edge Functions → Settings
+2. Click "Add new secret"
+3. Enter the variable name and value
+
+## Vite Build Configuration
+
+Vite injects environment variables at build time. Variables must be prefixed with `VITE_` to be exposed to client code.
+
+```typescript vite.config.ts
+define: {
+  'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+  'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+}
+```
+
+<Note>
+The `GEMINI_API_KEY` is aliased as both `process.env.API_KEY` and `process.env.GEMINI_API_KEY` for compatibility.
+</Note>
+
+## Production Deployment
+
+### Vercel / Netlify
+
+Add environment variables in your hosting platform:
+
+<CodeGroup>
+```bash Vercel
+# Via Vercel Dashboard
+Project Settings → Environment Variables
+
+# Or via CLI
+vercel env add VITE_SUPABASE_URL
+vercel env add VITE_SUPABASE_ANON_KEY
+vercel env add GEMINI_API_KEY
+```
+
+```bash Netlify
+# Via Netlify Dashboard  
+Site Settings → Environment Variables
+
+# Or via netlify.toml
+[build.environment]
+  VITE_SUPABASE_URL = "https://your-project.supabase.co"
+  GEMINI_API_KEY = "your-key"
+```
+</CodeGroup>
+
+### Docker Deployment
+
+Use a `.env` file or pass variables:
+
+```dockerfile Dockerfile
+# Build with ARG
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG GEMINI_API_KEY
+
+RUN npm run build
+```
+
+```bash
+docker build \
+  --build-arg VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+  --build-arg VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+  --build-arg GEMINI_API_KEY=$GEMINI_API_KEY \
+  -t cabina .
+```
+
+## Security Best Practices
+
+<Warning>
+**Never commit sensitive keys to version control!**
+
+Ensure `.env.local`, `.env`, and `.env.production` are in your `.gitignore`.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Use different keys per environment" icon="key">
+    Production, staging, and development should have separate API keys
+  </Card>
+  
+  <Card title="Rotate keys regularly" icon="rotate">
+    Change API keys periodically, especially after team member changes
+  </Card>
+  
+  <Card title="Monitor usage" icon="chart-line">
+    Track API usage in Supabase, Mercado Pago, and Kie.ai dashboards
+  </Card>
+  
+  <Card title="Implement rate limiting" icon="shield">
+    Use Supabase RLS and edge function rate limits
+  </Card>
+</CardGroup>
+
+## Environment Variable Checklist
+
+- [ ] `VITE_SUPABASE_URL` configured
+- [ ] `VITE_SUPABASE_ANON_KEY` configured
+- [ ] `GEMINI_API_KEY` configured
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` set in Edge Functions
+- [ ] `MP_ACCESS_TOKEN` set in Edge Functions
+- [ ] `BANANA_API_KEY` set in Edge Functions
+- [ ] All secrets added to `.gitignore`
+- [ ] Production values different from development
+- [ ] Team members have access to secrets vault
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Environment variables not loading">
+    **Vite variables:**
+    - Ensure they start with `VITE_`
+    - Restart dev server after changing `.env.local`
+    
+    **Edge Function variables:**
+    - Check they're set in Supabase Dashboard → Edge Functions → Settings
+    - Redeploy the edge function after adding secrets
+  </Accordion>
+
+  <Accordion title="CORS errors with Supabase">
+    Check that:
+    - `VITE_SUPABASE_URL` matches your actual project URL
+    - `VITE_SUPABASE_ANON_KEY` is the correct public key
+    - Your domain is allowed in Supabase Auth settings
+  </Accordion>
+
+  <Accordion title="Payment webhook not working">
+    Ensure:
+    - `MP_ACCESS_TOKEN` is set correctly
+    - Edge function is deployed and accessible
+    - Mercado Pago webhook URL is configured correctly
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deployment Guide" icon="rocket" href="/technical/deployment">
+    Deploy your configured app to production
+  </Card>
+  <Card title="Supabase Integration" icon="database" href="/technical/supabase-integration">
+    Learn more about Supabase setup
+  </Card>
+</CardGroup>

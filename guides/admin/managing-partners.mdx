@@ -1,0 +1,501 @@
+---
+title: Managing Partners
+description: Approve, configure, and oversee partner/reseller accounts in the platform
+---
+
+## Partner Management Overview
+
+Partners (also called "Resellers" or "Agencies") are businesses that use Cabina to offer photo booth services to their own clients. As an administrator, you control partner onboarding, configuration, and lifecycle.
+
+## Accessing Partner Management
+
+<Steps>
+  <Step title="Navigate to Partners Tab">
+    From your Admin Dashboard, click **"Partners"** in the main navigation.
+  </Step>
+  
+  <Step title="Partner Management View Loads">
+    You'll see:
+    - Pending partner applications (if any)
+    - Partner analytics cards
+    - Partner table with all accounts
+  </Step>
+</Steps>
+
+## Pending Partner Approvals
+
+When users request partner status, they appear in the **"Solicitudes de Agencia Pendientes"** section.
+
+### Approval Workflow
+
+<Steps>
+  <Step title="Review Application">
+    Each pending partner card shows:
+    - Name or email
+    - Application timestamp
+    - User ID
+    
+    **Evaluation Criteria:**
+    - Legitimate business email (not free gmail/hotmail)
+    - Clear business purpose
+    - No duplicate applications
+  </Step>
+  
+  <Step title="Approve or Reject">
+    **To Approve:**
+    - Click **"APROBAR"** button (amber/gold)
+    - User's role changes to Partner
+    - They gain access to Partner Dashboard
+    - Confirmation email sent automatically
+    
+    **To Reject:**
+    - Click **"RECHAZAR"** button (red)
+    - Application is deleted
+    - User remains as End User
+    - No notification sent (optional: email manually)
+  </Step>
+  
+  <Step title="Post-Approval Configuration">
+    After approval:
+    - Find partner in main Partners table
+    - Click Edit to configure initial credits, branding
+    - Communicate next steps via email
+  </Step>
+</Steps>
+
+<Info>
+**Auto-Approval:** For trusted partners or high-volume scenarios, contact development to set up auto-approval rules based on email domains.
+</Info>
+
+## Partner Analytics Cards
+
+Four stat cards display partner network health:
+
+<Tabs>
+  <Tab title="Partners Activos">
+    - **Metric**: Count of active (non-deactivated) partners
+    - **Icon**: Handshake
+    - **Use**: Track network growth over time
+  </Tab>
+  
+  <Tab title="Total Eventos Red">
+    - **Metric**: Sum of events across all partners
+    - **Icon**: Calendar
+    - **Use**: Measure platform activity and partner engagement
+  </Tab>
+  
+  <Tab title="Créditos en Canales">
+    - **Metric**: Total unallocated partner credits
+    - **Icon**: Wallet
+    - **Use**: Financial liability tracking
+  </Tab>
+  
+  <Tab title="Ratio de Consumo">
+    - **Metric**: Average credit usage percentage across partners
+    - **Icon**: Trending Up
+    - **Use**: Engagement indicator (higher = more active)
+  </Tab>
+</Tabs>
+
+## Partner Table
+
+### Table Columns
+
+<Tabs>
+  <Tab title="Partner / Agencia">
+    - Partner name or company name
+    - Contact email
+    - Status badge ("Inactivo" if deactivated)
+    - Avatar with first initial
+  </Tab>
+  
+  <Tab title="Eventos">
+    - Total event count for this partner
+    - "Eventos creados" label
+  </Tab>
+  
+  <Tab title="Billetera (Wallet)">
+    - Available credits (total - used)
+    - Progress bar showing consumption
+    - Format: `12,500 / 50,000`
+  </Tab>
+  
+  <Tab title="Configuración">
+    - Branding configured? (checkmark icon if yes)
+    - Indicates if partner has logo, colors set
+  </Tab>
+  
+  <Tab title="Acciones (Actions)">
+    - **Top Up**: Add credits
+    - **Edit**: Modify partner settings
+    - **Deactivate/Activate**: Toggle status
+    - **Delete**: Permanent removal
+  </Tab>
+</Tabs>
+
+### Filtering Partners
+
+**"VER INACTIVOS" / "OCULTAR INACTIVOS" Toggle:**
+- Click to show/hide deactivated partners
+- Inactive partners appear grayed out in table
+- Useful for focusing on active accounts
+
+## Creating a New Partner
+
+### Manual Partner Creation
+
+<Steps>
+  <Step title="Click 'New Reseller'">
+    In the top-right of Partners tab, click **"New Reseller"** button (green with + icon).
+  </Step>
+  
+  <Step title="Fill Partner Modal">
+    **Required Fields:**
+    - **Name**: Partner's full name or business name
+    - **Email**: Business email (becomes login)
+    - **Phone**: Contact phone number (optional but recommended)
+    - **Company Name**: Official business name (optional)
+    
+    **Optional Fields:**
+    - **Initial Credits**: Starting credit balance (default: 0)
+    - **Branding**: Logo URL, primary color (can configure later)
+  </Step>
+  
+  <Step title="Set Partner Type">
+    - **Standard Partner**: Default, manual credit purchases
+    - **Enterprise Partner**: Custom pricing, contract-based (add notes)
+  </Step>
+  
+  <Step title="Save Partner">
+    - Click **"Crear Partner"**
+    - Partner account is created
+    - Invitation email sent with login credentials
+    - Partner appears in Partners table
+  </Step>
+</Steps>
+
+<Note>
+**Auto-Generated Password:** The system auto-generates a secure password and emails it to the partner. Advise them to change it on first login.
+</Note>
+
+## Editing Partner Settings
+
+<Steps>
+  <Step title="Click Edit Button">
+    In the Partners table, click the **Edit icon** (pencil) for the partner.
+  </Step>
+  
+  <Step title="Partner Edit Modal Opens">
+    **Editable Fields:**
+    - Name, Email, Phone, Company Name
+    - Credits Total (add more or adjust)
+    - Active Status (enable/disable account)
+    - Branding config (logo URL, primary color, radius)
+    - Style presets (which packs they can use)
+  </Step>
+  
+  <Step title="Make Changes">
+    Update desired fields.
+    
+    **Common Edits:**
+    - Add credits to wallet
+    - Update contact info
+    - Configure white-label branding
+    - Enable/disable specific style packs
+  </Step>
+  
+  <Step title="Save Changes">
+    - Click **"Guardar Cambios"** (Save Changes)
+    - Updates apply immediately
+    - Partner dashboard reflects new settings
+    - No notification sent (optional: email partner manually)
+  </Step>
+</Steps>
+
+## Top-Up Partner Credits
+
+### Adding Credits to Partner Account
+
+<Steps>
+  <Step title="Click Top-Up Button">
+    In Partners table, click the **"Cargar" or ShoppingCart icon** button.
+  </Step>
+  
+  <Step title="Enter Credit Amount">
+    - Modal shows current balance
+    - Enter number of credits to add
+    - View new total after top-up
+  </Step>
+  
+  <Step title="Confirm Top-Up">
+    - Click **"Asignar Créditos"**
+    - Credits added instantly
+    - Transaction logged
+    - Partner can now allocate to events
+  </Step>
+</Steps>
+
+<Info>
+**Manual Top-Ups:** This is for manual credit allocation (e.g., paid via bank transfer, promotional credits, contract fulfillment). For automated credit purchases, partners use Mercado Pago integration.
+</Info>
+
+### When to Top-Up Manually
+
+- Partner paid via bank transfer (outside payment gateway)
+- Promotional credit grants
+- Contract-based bulk allocations
+- Compensation for platform issues
+- Beta testing credits
+
+## Deactivating vs. Deleting Partners
+
+### Deactivate Partner
+
+**Effect:**
+- Partner cannot log in
+- Existing events remain accessible (read-only)
+- Events stop accepting new generations
+- Credits are preserved (can reactivate later)
+- Appears grayed out in Partners table with "Inactivo" badge
+
+**When to Deactivate:**
+- Partner requests temporary suspension
+- Non-payment or contract breach
+- Seasonal partners (weddings, holidays)
+- Investigation of suspicious activity
+
+**How to Deactivate:**
+1. Edit partner
+2. Toggle "Active Status" to OFF
+3. Save changes
+
+**Reactivation:**
+- Edit partner
+- Toggle "Active Status" to ON
+- Partner can log in immediately
+
+### Delete Partner
+
+<Warning>
+**Permanent Action:** Deleting a partner is irreversible. Use with extreme caution.
+</Warning>
+
+**Effect:**
+- Partner account deleted
+- All events deleted (or orphaned, depending on config)
+- All allocated credits lost
+- Client associations broken
+- Cannot be undone
+
+**When to Delete:**
+- ❌ Duplicate accounts (keep one, delete other)
+- ❌ Test accounts (after testing complete)
+- ❌ Fraudulent accounts
+- ❌ Partner business closed permanently
+
+**How to Delete:**
+1. Edit partner
+2. Scroll to bottom of modal
+3. Click **"Eliminar Partner"** (red button)
+4. Confirmation dialog appears: "This is permanent. Type partner name to confirm."
+5. Type name exactly
+6. Click **"Confirmar Eliminación"**
+7. Partner and data deleted immediately
+
+<Note>
+**Safeguard:** Some implementations require typing the partner name to confirm deletion, preventing accidental clicks.
+</Note>
+
+## Partner Branding Configuration
+
+### Setting Up White-Label
+
+For partners who want their own branding:
+
+<Steps>
+  <Step title="Edit Partner">
+    Open partner edit modal.
+  </Step>
+  
+  <Step title="Navigate to Branding Section">
+    Scroll to "Branding Config" or "Visual Identity" section.
+  </Step>
+  
+  <Step title="Configure Elements">
+    - **Logo URL**: Paste public URL of partner's logo image
+    - **Primary Color**: Enter HEX code (e.g., #135bec)
+    - **Border Radius**: Select 4px, 8px, 12px, or 20px
+    - **Name**: Display name for partner branding
+  </Step>
+  
+  <Step title="Save Configuration">
+    - Branding applies to all partner events
+    - Partner sees their branding in dashboard
+    - Event guests see partner branding in kiosk
+  </Step>
+</Steps>
+
+<Info>
+**Logo Hosting:** Partners should host logos on their own servers or use a service like Imgur, Cloudinary. Ensure URLs are HTTPS and publicly accessible.
+</Info>
+
+## Style Pack Management per Partner
+
+Control which AI style packs each partner can access.
+
+### Configure Style Presets
+
+<Steps>
+  <Step title="Edit Partner">
+    Open partner edit modal.
+  </Step>
+  
+  <Step title="Find 'Style Presets' Section">
+    Grid of available style pack thumbnails.
+  </Step>
+  
+  <Step title="Toggle Packs">
+    - Click pack thumbnail to enable/disable
+    - Selected packs show checkmark
+    - At least one pack should be enabled
+  </Step>
+  
+  <Step title="Save Changes">
+    - Partner's events will only show selected packs
+    - Partner cannot enable additional packs themselves
+  </Step>
+</Steps>
+
+**Use Cases:**
+- Restrict premium styles to higher-tier partners
+- Create tiered partnership levels (Basic, Pro, Enterprise)
+- Test new styles with select partners first
+- Comply with licensing (certain styles may have restricted use)
+
+## Monitoring Partner Activity
+
+### Key Metrics Per Partner
+
+**From Partners Table:**
+- Event count (how many events created)
+- Credit balance and consumption rate
+- Active status
+
+**From Logs Tab:**
+- Filter logs by partner email
+- View partner's recent actions
+- Track credit purchases and allocations
+
+**From Analytics (if available):**
+- Generations per partner
+- Revenue contribution
+- Growth trends
+
+### Red Flags to Watch
+
+🚩 **Inactive Partner with High Credits:**
+- Purchased credits but no events
+- May indicate hesitation or technical issues
+- **Action**: Reach out to offer assistance
+
+🚩 **High Consumption, Low Balance:**
+- Partner running events without sufficient credits
+- Events may fail mid-event
+- **Action**: Notify partner to top up
+
+🚩 **Many Events, No Consumption:**
+- Partner creating events but not using them
+- May be testing or configuration issues
+- **Action**: Check event settings, offer training
+
+🚩 **Unusual Spike in Activity:**
+- Sudden increase in events or consumption
+- Could be positive (big event) or negative (account compromise)
+- **Action**: Verify activity is legitimate
+
+## Partner Communication
+
+### Onboarding New Partners
+
+**Email Template:**
+
+```
+Subject: Welcome to Cabina Partner Program
+
+Hi [Partner Name],
+
+Your partner account has been approved! Here are your next steps:
+
+1. Sign in at app.metalabia.com with your email: [email]
+2. Temporary password: [generated_password] (change immediately)
+3. Complete your branding setup (logo, colors) in the Branding tab
+4. Purchase credits or reach out for contract pricing
+5. Create your first test event
+
+Resources:
+- Partner Documentation: [link]
+- Support Email: [support email]
+- Onboarding Call: [scheduling link]
+
+Let us know if you have any questions!
+
+Best,
+[Your Name]
+Cabina Admin Team
+```
+
+### Following Up on Inactive Partners
+
+- Reach out after 7 days of no activity post-approval
+- Offer onboarding assistance
+- Ask if they're experiencing technical issues
+- Provide case studies or success stories
+
+### Handling Partner Issues
+
+**Support Workflow:**
+1. Partner reports issue via email/chat
+2. Admin reviews partner account in dashboard
+3. Check logs for errors related to partner
+4. Reproduce issue if possible
+5. Resolve (credit adjustment, config fix, etc.)
+6. Follow up to confirm resolution
+
+## Best Practices
+
+### Partner Management
+
+- ✅ Approve legitimate applications within 24 hours
+- ✅ Verify business info before approval (LinkedIn, website)
+- ✅ Set clear expectations in onboarding email
+- ✅ Provide documentation links
+- ✅ Schedule onboarding calls for enterprise partners
+- ✅ Monitor partner health metrics weekly
+
+### Credit Management
+
+- 💰 Only do manual top-ups for valid reasons (document in logs)
+- 💰 Verify payment received before crediting
+- 💰 Track manual top-ups separately for accounting
+- 💰 Set credit minimums for event creation (prevents small, unused allocations)
+
+### Security
+
+- 🔒 Review new partner emails for phishing patterns
+- 🔒 Deactivate partners with suspicious activity immediately
+- 🔒 Require password reset if account compromise suspected
+- 🔒 Don't share partner credentials (let them reset via forgot password)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Master Dashboard" icon="gauge" href="/guides/admin/master-dashboard">
+    Navigate the admin control panel
+  </Card>
+  <Card title="Analytics" icon="chart-bar" href="/guides/admin/analytics">
+    Deep-dive into partner performance
+  </Card>
+  <Card title="Style Management" icon="palette" href="/guides/admin/style-management">
+    Configure AI styles for partners
+  </Card>
+</CardGroup>

@@ -1,0 +1,563 @@
+---
+title: Credit System
+description: How credits work, atomic deduction, and preventing race conditions
+---
+
+# Credit System
+
+Cabina uses a **credit-based economy** where 1 AI photo generation = **100 credits**. The system is designed to prevent double-billing and race conditions, even during high-traffic events with 100+ concurrent users.
+
+## Overview
+
+<CardGroup cols={2}>
+  <Card title="B2C Credits" icon="user">
+    Stored in `profiles.credits` - deducted per user
+  </Card>
+  <Card title="Event Credits" icon="calendar">
+    Stored in `events.credits_allocated` - shared pool for all guests
+  </Card>
+  <Card title="Atomic Deduction" icon="lock">
+    PostgreSQL functions ensure no race conditions
+  </Card>
+  <Card title="Refund on Error" icon="rotate-ccw">
+    Credits returned if generation fails
+  </Card>
+</CardGroup>
+
+---
+
+## Credit Value
+
+### Base Pricing
+
+```typescript
+const CREDIT_COST_PER_GENERATION = 100;
+
+// Retail pricing (B2C)
+const PACKS = [
+  { name: 'Starter', credits: 500, price: 1500 },   // $0.30 per photo
+  { name: 'Popular', credits: 1500, price: 3900 },  // $0.26 per photo
+  { name: 'Pro', credits: 3000, price: 6900 }       // $0.23 per photo
+];
+
+// Wholesale pricing (B2B)
+const WHOLESALE_RATE = 0.50; // 50% discount for partners
+```
+
+<Info>
+**Why 100 credits per photo?** This provides granularity for future pricing tiers (e.g., premium styles could cost 150 credits, quick styles 50 credits).
+</Info>
+
+---
+
+## B2C Credit Flow
+
+### Purchase Credits
+
+Users buy credits via Mercado Pago:
+
+```typescript
+// src/App.tsx:980
+const handlePayment = async (pack: any) => {
+  const { data, error } = await supabase.functions.invoke('mercadopago-payment', {
+    body: {
+      user_id: session.user.id,
+      credits: pack.credits,
+      price: pack.price,
+      pack_name: pack.name,
+      redirect_url: window.location.origin
+    }
+  });
+  
+  if (data?.init_point) {
+    // Redirect to Mercado Pago checkout
+    window.location.href = data.init_point;
+  }
+};
+```
+
+### Payment Webhook
+
+When payment succeeds, Mercado Pago webhook triggers credit addition:
+
+```typescript
+// supabase/functions/mercadopago-payment/index.ts (webhook handler)
+const handleWebhook = async (notification: any) => {
+  // Verify payment status
+  const payment = await mercadopago.payment.get(notification.data.id);
+  
+  if (payment.status === 'approved') {
+    // Add credits to user
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        credits: profile.credits + payment.metadata.credits 
+      })
+      .eq('id', payment.metadata.user_id);
+    
+    // Log transaction
+    await supabase.from('transactions').insert({
+      user_id: payment.metadata.user_id,
+      type: 'credit_purchase',
+      amount: payment.metadata.credits,
+      price_paid: payment.transaction_amount,
+      payment_id: payment.id
+    });
+  }
+};
+```
+
+### Credit Deduction (Optimistic)
+
+<Steps>
+  <Step title="Pre-flight Check">
+    Verify user has enough credits:
+    ```typescript
+    // src/App.tsx:723
+    if (!profile || profile.credits < 100) {
+      setErrorMessage("Saldo insuficiente.");
+      setAppStep('result');
+      return;
+    }
+    ```
+  </Step>
+  
+  <Step title="Optimistic Deduction">
+    Deduct credits BEFORE calling AI:
+    ```typescript
+    // src/App.tsx:766
+    const { error: deductError } = await supabase
+      .from('profiles')
+      .update({ credits: profile.credits - 100 })
+      .eq('id', session.user.id);
+    
+    if (deductError) throw deductError;
+    
+    // Update local state
+    setProfile(prev => ({ ...prev, credits: prev.credits - 100 }));
+    ```
+    
+    <Warning>
+    **Why optimistic?** Prevents users from spamming the generate button while waiting. Credits are deducted immediately to discourage abuse.
+    </Warning>
+  </Step>
+  
+  <Step title="Call AI Generation">
+    ```typescript
+    const { data, error } = await supabase.functions.invoke('cabina-vision', {
+      body: {
+        user_photo: capturedImage,
+        model_id: selectedStyle.id,
+        user_id: session.user.id
+      }
+    });
+    ```
+  </Step>
+  
+  <Step title="Refund on Error">
+    If generation fails, return credits:
+    ```typescript
+    // src/App.tsx:868
+    if (!data?.success) {
+      // Refund credits
+      await supabase
+        .from('profiles')
+        .update({ credits: profile.credits })
+        .eq('id', session.user.id);
+      
+      setProfile(prev => ({ ...prev, credits: profile.credits }));
+      setErrorMessage(data?.error || "Error al procesar la imagen.");
+    }
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+**Master Bypass**: Users with `is_master = true` skip credit checks entirely. Useful for testing and demonstrations.
+</Tip>
+
+---
+
+## Event Credit Flow (Atomic)
+
+### The Race Condition Problem
+
+Imagine 100 guests at a wedding, all generating photos simultaneously:
+
+```
+Guest A reads: credits_remaining = 1
+Guest B reads: credits_remaining = 1
+Guest A generates photo → credits_remaining = 0
+Guest B generates photo → credits_remaining = -1 ❌ OVERBILLING!
+```
+
+This is a **race condition** that can cause credit over-deduction.
+
+### Solution: Atomic PostgreSQL Function
+
+```sql
+-- Database function for atomic deduction
+CREATE OR REPLACE FUNCTION deduct_event_credit(event_uuid UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  remaining INTEGER;
+BEGIN
+  -- Single atomic operation: check AND deduct
+  UPDATE events
+  SET credits_used = credits_used + 1
+  WHERE id = event_uuid
+    AND (credits_allocated - credits_used) > 0
+  RETURNING (credits_allocated - credits_used - 1) INTO remaining;
+  
+  -- Return true if deduction succeeded, false if no credits
+  RETURN remaining IS NOT NULL;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+<Info>
+**Atomicity**: The `UPDATE ... WHERE ... RETURNING` ensures the check and deduction happen in a single database transaction, making race conditions impossible.
+</Info>
+
+### Event Credit Deduction Flow
+
+<Steps>
+  <Step title="Guest Initiates Generation">
+    ```typescript
+    // src/components/kiosk/GuestExperience.tsx:116
+    const handleGenerate = async () => {
+      const { data, error } = await supabase.functions.invoke('cabina-vision', {
+        body: {
+          user_photo: capturedImage,
+          model_id: selectedStyle.id,
+          event_id: eventConfig.id,
+          guest_id: `guest_${Date.now()}`
+        }
+      });
+    };
+    ```
+    
+    <Note>
+    Notice: No credit check on the frontend. This happens server-side to prevent tampering.
+    </Note>
+  </Step>
+  
+  <Step title="Edge Function Atomically Deducts">
+    ```typescript
+    // supabase/functions/cabina-vision/index.ts
+    const { event_id } = await req.json();
+    
+    if (event_id) {
+      // Call atomic function
+      const { data: canProceed, error } = await supabaseAdmin.rpc(
+        'deduct_event_credit',
+        { event_uuid: event_id }
+      );
+      
+      if (!canProceed) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Créditos del evento agotados' 
+          }),
+          { status: 402 }
+        );
+      }
+      
+      // Credits successfully deducted - proceed with AI
+    }
+    ```
+  </Step>
+  
+  <Step title="AI Generation">
+    If deduction succeeded, proceed with Replicate API call:
+    ```typescript
+    const prediction = await replicate.predictions.create({
+      model: FLUX_MODEL,
+      input: {
+        prompt: getPromptForStyle(model_id),
+        image: user_photo
+      }
+    });
+    ```
+  </Step>
+  
+  <Step title="Save Generation Record">
+    ```typescript
+    await supabaseAdmin.from('generations').insert({
+      event_id: event_id,
+      style_id: model_id,
+      image_url: prediction.output[0],
+      user_id: null, // Guests have no user_id
+      created_at: new Date().toISOString()
+    });
+    ```
+  </Step>
+</Steps>
+
+### No Refunds for Events
+
+<Warning>
+**Event credits are NOT refunded on error**. This is intentional:
+- Prevents guests from retrying failed generations infinitely
+- Simplifies event accounting for partners
+- Errors are rare (less than 1%) and logged for debugging
+</Warning>
+
+If a generation fails, the error is shown to the guest with an option to try a different photo or style.
+
+---
+
+## Daily Limits (Anti-Abuse)
+
+To prevent free-tier abuse:
+
+```typescript
+// src/App.tsx:738
+if (!isEventMode && !isMaster && session?.user) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const { count, error } = await supabase
+    .from('generations')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', session.user.id)
+    .gte('created_at', today.toISOString());
+  
+  if (count >= 2) {
+    setErrorMessage("Máximo de impresiones del día alcanzado.");
+    return;
+  }
+}
+```
+
+<Info>
+**Limits**:
+- **Free Users**: 2 generations per day
+- **Paid Users**: Unlimited (if they have credits)
+- **Event Guests**: Unlimited (uses event credits)
+- **Masters**: Unlimited
+</Info>
+
+---
+
+## Partner Credit Management
+
+### Wallet System
+
+Partners have a virtual wallet:
+
+```typescript
+interface PartnerWallet {
+  total_purchased: number;   // Total credits bought from Master
+  allocated: number;         // Credits assigned to events
+  used: number;             // Credits actually consumed
+  available: number;         // Unallocated balance
+}
+
+// Example:
+const wallet = {
+  total_purchased: 50_000,
+  allocated: 35_000,        // Across 10 events
+  used: 28_450,            // Actual consumption
+  available: 15_000         // Can create new events
+};
+```
+
+### Allocating Credits to Events
+
+```typescript
+// src/components/dashboards/partner/modals/CreateEventModal.tsx
+const handleCreateEvent = async () => {
+  // Check if partner has enough unallocated credits
+  if (formData.credits_allocated > partner.available_credits) {
+    setError('Créditos insuficientes. Recarga tu wallet.');
+    return;
+  }
+  
+  const { data: event, error } = await supabase
+    .from('events')
+    .insert({
+      partner_id: partner.id,
+      credits_allocated: formData.credits_allocated,
+      credits_used: 0,
+      // ...
+    })
+    .select()
+    .single();
+  
+  if (!error) {
+    showToast(`Evento creado con ${formData.credits_allocated} créditos`);
+  }
+};
+```
+
+### Top-Up Mid-Event
+
+Partners can add more credits to a running event:
+
+```typescript
+// src/hooks/usePartnerDashboard.ts:73
+const handleTopUpEvent = async (eventId: string, additionalCredits: number) => {
+  // Check available balance
+  if (additionalCredits > partner.available_credits) {
+    throw new Error('Créditos insuficientes en tu wallet');
+  }
+  
+  // Add to event
+  const { error } = await supabase
+    .from('events')
+    .update({ 
+      credits_allocated: event.credits_allocated + additionalCredits 
+    })
+    .eq('id', eventId);
+  
+  if (!error) {
+    showToast(`+${additionalCredits} créditos añadidos al evento`);
+  }
+};
+```
+
+<Tip>
+**Live Rescue**: If an event is running low on credits mid-party, the partner can top-up in real-time from their phone. Guests never need to know!
+</Tip>
+
+---
+
+## Credit Monitoring
+
+### Real-Time Dashboard
+
+Partners and clients see live credit consumption:
+
+```typescript
+// src/components/dashboards/ClientDashboard.tsx:100
+const CreditMeter = ({ event }: { event: EventData }) => {
+  const used = event.credits_used;
+  const allocated = event.credits_allocated;
+  const percentage = (used / allocated) * 100;
+  
+  return (
+    <div className="credit-meter">
+      <div className="bar" style={{ width: `${percentage}%` }} />
+      <span>{allocated - used} créditos restantes</span>
+      
+      {percentage > 80 && (
+        <Alert type="warning">
+          ⚠️ Créditos bajos - contacta a tu organizador
+        </Alert>
+      )}
+    </div>
+  );
+};
+```
+
+### Realtime Subscriptions
+
+Credit usage updates live via Supabase Realtime:
+
+```typescript
+const subscription = supabase
+  .channel(`event_credits_${eventId}`)
+  .on(
+    'postgres_changes',
+    {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'events',
+      filter: `id=eq.${eventId}`
+    },
+    (payload) => {
+      setEventConfig(payload.new);
+      
+      // Show alert if running low
+      if (payload.new.credits_allocated - payload.new.credits_used < 500) {
+        showToast('Créditos bajos en el evento', 'warning');
+      }
+    }
+  )
+  .subscribe();
+```
+
+---
+
+## Analytics & Reporting
+
+### Master Analytics
+
+Platform owner sees global credit flow:
+
+```typescript
+// src/hooks/useAdmin.ts:45
+const stats = {
+  total_credits_sold: 250_000,      // All-time sales
+  credits_in_circulation: 180_000,  // Purchased but not used
+  credits_consumed: 70_000,         // Actually used for generations
+  revenue: '$1,250 USD',           // Total revenue
+  avg_credit_cost: '$0.005'        // Per credit
+};
+```
+
+### Partner Analytics
+
+```typescript
+const partnerStats = {
+  total_purchased: 50_000,
+  total_allocated: 45_000,
+  total_used: 38_200,
+  efficiency: 84.9,          // (used / allocated) * 100
+  avg_photos_per_event: 38,
+  most_popular_style: 'pixar_a'
+};
+```
+
+---
+
+## Code References
+
+| Feature | File | Line |
+|---------|------|------|
+| B2C Credit Purchase | `src/App.tsx` | 980 |
+| B2C Credit Deduction | `src/App.tsx` | 766 |
+| Event Atomic Function | Database schema | SQL |
+| Event Deduction (Edge) | `supabase/functions/cabina-vision/index.ts` | ~50 |
+| Partner Wallet | `src/components/dashboards/partner/WalletSection.tsx` | 24 |
+| Daily Limit Check | `src/App.tsx` | 738 |
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Pre-Allocate Generously" icon="calendar">
+    For events, allocate 20% more credits than expected. Better to have excess than run out mid-party.
+  </Card>
+  <Card title="Monitor in Real-Time" icon="chart-line">
+    Keep the client dashboard open during events to watch credit consumption.
+  </Card>
+  <Card title="Test Before Launch" icon="flask">
+    Use Master account to test the full flow before giving access to partners.
+  </Card>
+  <Card title="Refund Policy" icon="rotate-ccw">
+    B2C credits are refunded on error. Event credits are NOT. Communicate this to partners.
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Event System" icon="calendar" href="/concepts/events">
+    Learn about event lifecycle and validation
+  </Card>
+  <Card title="Multi-Tier System" icon="sitemap" href="/concepts/multi-tier-system">
+    Understand how credits flow through tiers
+  </Card>
+  <Card title="Business Models" icon="building" href="/concepts/business-models">
+    See how credits monetize B2C vs B2B2C
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture">
+    Dive into the database schema
+  </Card>
+</CardGroup>

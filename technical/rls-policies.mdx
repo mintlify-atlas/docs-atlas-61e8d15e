@@ -1,0 +1,582 @@
+---
+title: Row Level Security (RLS)
+description: Complete guide to RLS policies securing Cabina's database
+---
+
+## RLS Overview
+
+Row Level Security (RLS) is PostgreSQL's fine-grained access control system. In Cabina, RLS ensures:
+
+- Users only see their own data
+- Partners only access their events
+- Guests can generate photos without authentication
+- Masters see everything
+
+<Note>
+All tables in Cabina have RLS enabled. The `anon` and `authenticated` roles rely on RLS policies for data access.
+</Note>
+
+## Authentication Context
+
+Supabase provides helper functions for RLS policies:
+
+```sql
+-- Current user's ID (null if not authenticated)
+auth.uid()
+
+-- Current user's role: 'anon', 'authenticated', or 'service_role'
+auth.role()
+
+-- Current user's JWT claims
+auth.jwt()
+```
+
+## Core Table Policies
+
+### profiles
+
+Users can read and update their own profile.
+
+```sql
+-- Enable RLS
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own profile
+CREATE POLICY "Users can view own profile" ON profiles
+  FOR SELECT
+  USING (auth.uid() = id);
+
+-- Users can update their own profile
+CREATE POLICY "Users can update own profile" ON profiles
+  FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Public profiles are viewable by anyone (for referrals)
+CREATE POLICY "Public profiles readable" ON profiles
+  FOR SELECT
+  USING (true);
+
+-- Only service role can create profiles (via auth trigger)
+CREATE POLICY "Service role can insert profiles" ON profiles
+  FOR INSERT
+  TO service_role
+  WITH CHECK (true);
+```
+
+### partners
+
+Masters can CRUD all partners. Partners can read their own data.
+
+```sql
+ALTER TABLE partners ENABLE ROW LEVEL SECURITY;
+
+-- Masters have full access
+CREATE POLICY "Masters can manage all partners" ON partners
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+
+-- Partners can read their own data
+CREATE POLICY "Partners can view own data" ON partners
+  FOR SELECT
+  USING (
+    user_id = auth.uid()
+  );
+
+-- Partners can update their own config
+CREATE POLICY "Partners can update own config" ON partners
+  FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+```
+
+### clients
+
+Partners can manage their own clients.
+
+```sql
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+
+-- Partners can CRUD their own clients
+CREATE POLICY "Partners can manage own clients" ON clients
+  FOR ALL
+  USING (
+    partner_id IN (
+      SELECT id FROM partners WHERE user_id = auth.uid()
+    )
+  );
+
+-- Masters see all clients
+CREATE POLICY "Masters can view all clients" ON clients
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+```
+
+### events
+
+Critical for the B2B2C model - supports public read for QR code access.
+
+```sql
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+
+-- PUBLIC READ: Anyone can read active events (for QR code guests)
+CREATE POLICY "Public can read active events" ON events
+  FOR SELECT
+  USING (is_active = true);
+
+-- Partners can manage their own events
+CREATE POLICY "Partners can manage own events" ON events
+  FOR ALL
+  USING (
+    partner_id IN (
+      SELECT id FROM partners WHERE user_id = auth.uid()
+    )
+  );
+
+-- Clients can view and update their events (via PIN)
+CREATE POLICY "Clients can manage assigned events" ON events
+  FOR ALL
+  USING (
+    client_id IN (
+      SELECT id FROM clients WHERE email = auth.email()
+    )
+  );
+
+-- Masters see everything
+CREATE POLICY "Masters can manage all events" ON events
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+```
+
+<Warning>
+**Critical Policy**: `"Public can read active events"` enables **Zero Friction** event mode.
+
+Guests scan a QR code, load `/?event=slug`, and the app fetches event config without authentication.
+</Warning>
+
+### generations
+
+Users see their own generations. Event guests see event-specific photos.
+
+```sql
+ALTER TABLE generations ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own generations
+CREATE POLICY "Users can view own generations" ON generations
+  FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Anyone can view generations from public events
+CREATE POLICY "Public can view event generations" ON generations
+  FOR SELECT
+  USING (
+    event_id IN (
+      SELECT id FROM events WHERE is_active = true
+    )
+  );
+
+-- Service role can insert (from edge functions)
+CREATE POLICY "Service role can insert generations" ON generations
+  FOR INSERT
+  TO service_role
+  WITH CHECK (true);
+
+-- Partners can view generations from their events
+CREATE POLICY "Partners can view own event generations" ON generations
+  FOR SELECT
+  USING (
+    event_id IN (
+      SELECT id FROM events WHERE partner_id IN (
+        SELECT id FROM partners WHERE user_id = auth.uid()
+      )
+    )
+  );
+
+-- Partners can delete generations from their events (moderation)
+CREATE POLICY "Partners can delete own event generations" ON generations
+  FOR DELETE
+  USING (
+    event_id IN (
+      SELECT id FROM events WHERE partner_id IN (
+        SELECT id FROM partners WHERE user_id = auth.uid()
+      )
+    )
+  );
+```
+
+### api_key_pool
+
+Only service role (edge functions) can access.
+
+```sql
+ALTER TABLE api_key_pool ENABLE ROW LEVEL SECURITY;
+
+-- Service role only (used by edge functions)
+CREATE POLICY "Service role only" ON api_key_pool
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+```
+
+### payment_notifications
+
+Users can view their own payment history.
+
+```sql
+ALTER TABLE payment_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own payments
+CREATE POLICY "Users can view own payments" ON payment_notifications
+  FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Service role can insert (webhook handler)
+CREATE POLICY "Service role can insert payments" ON payment_notifications
+  FOR INSERT
+  TO service_role
+  WITH CHECK (true);
+
+-- Masters can view all payments
+CREATE POLICY "Masters can view all payments" ON payment_notifications
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+```
+
+### styles_metadata
+
+Public read for all styles.
+
+```sql
+ALTER TABLE styles_metadata ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read styles
+CREATE POLICY "Public can read styles" ON styles_metadata
+  FOR SELECT
+  USING (true);
+
+-- Masters can manage styles
+CREATE POLICY "Masters can manage styles" ON styles_metadata
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+
+-- Service role can update usage counts
+CREATE POLICY "Service role can update styles" ON styles_metadata
+  FOR UPDATE
+  TO service_role
+  WITH CHECK (true);
+```
+
+### identity_prompts
+
+Public read for prompts (needed by edge functions).
+
+```sql
+ALTER TABLE identity_prompts ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read prompts
+CREATE POLICY "Public can read prompts" ON identity_prompts
+  FOR SELECT
+  USING (true);
+
+-- Masters can manage prompts
+CREATE POLICY "Masters can manage prompts" ON identity_prompts
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+```
+
+## Storage Bucket Policies
+
+### user_photos Bucket
+
+Users can upload their own photos.
+
+```sql
+-- Users can insert their own photos
+CREATE POLICY "Users can upload own photos"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'user_photos' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Users can read their own photos
+CREATE POLICY "Users can view own photos"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'user_photos' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+```
+
+### generations Bucket
+
+Public read for all generated images.
+
+```sql
+-- Anyone can read generated images
+CREATE POLICY "Public can view generations"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'generations');
+
+-- Service role can insert
+CREATE POLICY "Service can upload generations"
+ON storage.objects FOR INSERT
+TO service_role
+WITH CHECK (bucket_id = 'generations');
+```
+
+### event_assets Bucket
+
+Partners can upload assets for their events.
+
+```sql
+-- Partners can upload event assets
+CREATE POLICY "Partners can upload event assets"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'event_assets' AND
+  (storage.foldername(name))[1] IN (
+    SELECT id::text FROM events WHERE partner_id IN (
+      SELECT id FROM partners WHERE user_id = auth.uid()
+    )
+  )
+);
+
+-- Anyone can view event assets (logos)
+CREATE POLICY "Public can view event assets"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'event_assets');
+```
+
+## Testing RLS Policies
+
+### Check Current User Context
+
+```sql
+-- Who am I?
+SELECT 
+  auth.uid() as user_id,
+  auth.role() as role,
+  auth.email() as email;
+```
+
+### Simulate User Context
+
+```sql
+-- Set JWT claims (for testing)
+SET request.jwt.claims = '{"sub": "user-id-here", "role": "authenticated"}'::jsonb;
+
+-- Run query as that user
+SELECT * FROM events;
+
+-- Reset
+RESET request.jwt.claims;
+```
+
+### Verify Policy Coverage
+
+```sql
+-- List all policies for a table
+SELECT 
+  schemaname,
+  tablename,
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual,
+  with_check
+FROM pg_policies
+WHERE tablename = 'events';
+```
+
+## Common Patterns
+
+### Master Override
+
+Allow masters to bypass restrictions:
+
+```sql
+CREATE POLICY "Masters can do anything" ON table_name
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_master = true
+    )
+  );
+```
+
+### Role-Based Access
+
+Check user role from profiles:
+
+```sql
+CREATE POLICY "Partners only" ON table_name
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'partner'
+    )
+  );
+```
+
+### Time-Based Access
+
+Restrict access based on timestamps:
+
+```sql
+CREATE POLICY "Active events only" ON events
+  FOR SELECT
+  USING (
+    is_active = true AND
+    start_date <= NOW() AND
+    end_date >= NOW()
+  );
+```
+
+### Ownership Chain
+
+Follow foreign key relationships:
+
+```sql
+-- Clients can view generations from their events
+CREATE POLICY "Clients can view their generations" ON generations
+  FOR SELECT
+  USING (
+    event_id IN (
+      SELECT e.id FROM events e
+      INNER JOIN clients c ON e.client_id = c.id
+      WHERE c.email = auth.email()
+    )
+  );
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No rows returned despite data existing">
+    RLS is blocking access. Check:
+    
+    ```sql
+    -- Verify RLS is enabled
+    SELECT tablename, rowsecurity 
+    FROM pg_tables 
+    WHERE schemaname = 'public' AND tablename = 'your_table';
+    
+    -- Check policies for your role
+    SELECT * FROM pg_policies WHERE tablename = 'your_table';
+    ```
+  </Accordion>
+
+  <Accordion title="Policy not applying">
+    Ensure you're using the correct role:
+    
+    - Frontend queries use `anon` or `authenticated` role
+    - Edge functions use `service_role` (bypasses RLS by default)
+    
+    Use `USING` for SELECT, UPDATE, DELETE and `WITH CHECK` for INSERT, UPDATE.
+  </Accordion>
+
+  <Accordion title="Performance issues with RLS">
+    Complex policies can slow queries. Optimize:
+    
+    ```sql
+    -- Add index on columns used in policies
+    CREATE INDEX idx_events_partner_id ON events(partner_id);
+    
+    -- Simplify policy logic
+    -- Bad: Multiple subqueries
+    -- Good: Single JOIN
+    ```
+  </Accordion>
+
+  <Accordion title="Testing policies locally">
+    Use the SQL Editor in Supabase Dashboard or psql:
+    
+    ```bash
+    # Connect as specific role
+    psql postgres://postgres:password@localhost:54322/postgres
+    
+    # Set role
+    SET ROLE authenticated;
+    
+    # Test query
+    SELECT * FROM events;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Default Deny" icon="shield-xmark">
+    Enable RLS on all tables, then explicitly allow access
+  </Card>
+  
+  <Card title="Test Anonymously" icon="user-secret">
+    Always test queries as `anon` role to catch leaks
+  </Card>
+  
+  <Card title="Avoid SECURITY DEFINER" icon="exclamation-triangle">
+    Functions bypass RLS - use sparingly and carefully
+  </Card>
+  
+  <Card title="Audit Regularly" icon="clipboard-list">
+    Review policies monthly for unnecessary permissions
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/technical/database-schema">
+    Understand table relationships
+  </Card>
+  <Card title="Supabase Integration" icon="plug" href="/technical/supabase-integration">
+    Learn about auth and client setup
+  </Card>
+</CardGroup>

@@ -1,0 +1,438 @@
+---
+title: cabina-vision
+description: AI image generation edge function using Kie.ai (Nano Banana Pro)
+---
+
+## Endpoint
+
+```
+POST /functions/v1/cabina-vision
+```
+
+## Overview
+
+The `cabina-vision` edge function handles the complete AI image generation pipeline:
+
+1. Load balances API keys from pool
+2. Uploads user photo to CDN
+3. Fetches AI prompt for selected style
+4. Creates Kie.ai generation task
+5. Polls for completion (up to 45 seconds)
+6. Stores result in Supabase Storage
+7. Records generation in database
+8. Deducts credits (event or user)
+9. Sends notifications (push/email/WhatsApp)
+
+<Note>
+This function is critical for both B2C and B2B (event) workflows.
+</Note>
+
+## Request
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token with Supabase anon key
+  
+  ```
+  Authorization: Bearer <SUPABASE_ANON_KEY>
+  ```
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  Must be `application/json`
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="user_photo" type="string" required>
+  Base64-encoded image or public URL
+  
+  **Format:** `data:image/png;base64,iVBORw0KG...` or `https://...`
+  
+  **Max size:** ~5MB (before encoding)
+</ParamField>
+
+<ParamField body="model_id" type="string" required>
+  Style identifier from `styles_metadata` table
+  
+  **Examples:** `pb_a`, `suit_b`, `jhonw_c`
+</ParamField>
+
+<ParamField body="aspect_ratio" type="string" default="9:16">
+  Output image aspect ratio
+  
+  **Options:** `1:1`, `4:3`, `3:4`, `16:9`, `9:16`
+</ParamField>
+
+<ParamField body="user_id" type="uuid">
+  Authenticated user ID (for B2C mode)
+  
+  **Mutually exclusive** with `event_id`
+</ParamField>
+
+<ParamField body="event_id" type="uuid">
+  Event ID (for B2B/event mode)
+  
+  **Mutually exclusive** with `user_id`
+</ParamField>
+
+<ParamField body="guest_id" type="string">
+  Temporary guest identifier for event mode
+  
+  **Used for:** Storage path and analytics
+</ParamField>
+
+<ParamField body="email" type="string">
+  Email address to send notification (optional)
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Phone number for WhatsApp notification (optional)
+</ParamField>
+
+<ParamField body="action" type="string" default="generate">
+  Operation type
+  
+  **Options:**
+  - `generate` - Create new generation
+  - `check` - Check status of existing task
+</ParamField>
+
+<ParamField body="taskId" type="string">
+  Kie.ai task ID (required when `action=check`)
+</ParamField>
+
+## Response
+
+### Success Response (Immediate)
+
+```json
+{
+  "success": true,
+  "image_url": "https://elesttjfwfhvzdvldytn.supabase.co/storage/v1/object/public/generations/results/guest_123_1234567890.png"
+}
+```
+
+<ResponseField name="success" type="boolean">
+  Always `true` for successful generations
+</ResponseField>
+
+<ResponseField name="image_url" type="string">
+  Public URL to the generated image
+</ResponseField>
+
+### Polling Response (Still Processing)
+
+```json
+{
+  "success": true,
+  "taskId": "kie-task-abc123",
+  "state": "waiting"
+}
+```
+
+<ResponseField name="taskId" type="string">
+  Kie.ai task identifier for status checks
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Current task state: `waiting`, `processing`, `success`, or `fail`
+</ResponseField>
+
+### Error Response
+
+```json
+{
+  "error": "UPLOAD_FOTO -> KIE_CREATETASK -> KIE_402: Saldo insuficiente en la cuenta de IA.",
+  "success": false
+}
+```
+
+## Code Examples
+
+### Generate Image (Event Mode)
+
+```typescript
+import { supabase } from './supabaseClient';
+
+const generateEventPhoto = async (
+  photoBase64: string,
+  styleId: string,
+  eventId: string,
+  guestId: string
+) => {
+  const { data, error } = await supabase.functions.invoke('cabina-vision', {
+    body: {
+      user_photo: photoBase64,
+      model_id: styleId,
+      aspect_ratio: '9:16',
+      event_id: eventId,
+      guest_id: guestId
+    }
+  });
+
+  if (error) throw error;
+  
+  if (data.taskId) {
+    // Still processing, poll for result
+    return pollForResult(data.taskId);
+  }
+  
+  return data.image_url;
+};
+
+const pollForResult = async (taskId: string): Promise<string> => {
+  const maxAttempts = 20;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    await new Promise(r => setTimeout(r, 3000)); // Wait 3s
+    
+    const { data } = await supabase.functions.invoke('cabina-vision', {
+      body: {
+        action: 'check',
+        taskId: taskId
+      }
+    });
+
+    if (data.state === 'success') {
+      return data.image_url;
+    }
+    
+    if (data.state === 'fail') {
+      throw new Error('Generation failed');
+    }
+    
+    attempts++;
+  }
+  
+  throw new Error('Generation timeout');
+};
+```
+
+### Generate Image (B2C Mode)
+
+```typescript
+const generateUserPhoto = async (
+  photoBase64: string,
+  styleId: string,
+  userId: string,
+  email: string
+) => {
+  const { data, error } = await supabase.functions.invoke('cabina-vision', {
+    body: {
+      user_photo: photoBase64,
+      model_id: styleId,
+      user_id: userId,
+      email: email
+    }
+  });
+
+  if (error) throw error;
+  return data.image_url;
+};
+```
+
+### Check Task Status
+
+```typescript
+const checkGenerationStatus = async (taskId: string) => {
+  const { data, error } = await supabase.functions.invoke('cabina-vision', {
+    body: {
+      action: 'check',
+      taskId: taskId
+    }
+  });
+
+  if (error) throw error;
+  
+  return {
+    state: data.state,
+    imageUrl: data.image_url
+  };
+};
+```
+
+## Implementation Details
+
+### API Key Load Balancing
+
+The function selects the least-recently-used active API key:
+
+```typescript
+const { data: poolData } = await supabase
+  .from('api_key_pool')
+  .select('id, api_key')
+  .eq('is_active', true)
+  .order('last_used_at', { ascending: true })
+  .limit(1)
+  .maybeSingle();
+
+const currentApiKey = poolData?.api_key || fallbackKey;
+```
+
+**From source:** `supabase/functions/cabina-vision/index.ts:32-38`
+
+### Credit Deduction (Event Mode)
+
+Credits are decremented atomically via RPC:
+
+```typescript
+if (event_id) {
+  const { data: creditOk, error } = await supabase.rpc(
+    'increment_event_credit',
+    { p_event_id: event_id }
+  );
+  
+  if (!creditOk) {
+    throw new Error('Event credits exhausted');
+  }
+}
+```
+
+**From source:** `supabase/functions/cabina-vision/index.ts:69-83`
+
+### Photo Upload Pipeline
+
+Two-tier upload strategy:
+
+1. **Primary:** Kie.ai CDN upload
+2. **Fallback:** Supabase Storage bucket
+
+```typescript
+// Try Kie.ai upload
+const upRes = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${apiKey}` },
+  body: JSON.stringify({ base64Data: user_photo })
+});
+
+// Fallback to Supabase if failed
+if (!publicPhotoUrl) {
+  const { error } = await supabase.storage
+    .from('user_photos')
+    .upload(fileName, binaryData);
+}
+```
+
+**From source:** `supabase/functions/cabina-vision/index.ts:90-135`
+
+### AI Generation Request
+
+Uses Kie.ai Nano Banana Pro model:
+
+```typescript
+const createRes = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${apiKey}` },
+  body: JSON.stringify({
+    model: 'nano-banana-pro',
+    input: {
+      prompt: masterPrompt,
+      image_input: [publicPhotoUrl],
+      aspect_ratio: '9:16',
+      resolution: '2K',
+      output_format: 'png'
+    }
+  })
+});
+```
+
+**From source:** `supabase/functions/cabina-vision/index.ts:152-165`
+
+### Internal Polling
+
+Function polls for up to 45 seconds before returning task ID:
+
+```typescript
+let attempts = 0;
+while (attempts < 15) {
+  await new Promise(r => setTimeout(r, 3000)); // 3s delay
+  
+  const queryRes = await fetch(
+    `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`
+  );
+  
+  if (state === 'success') {
+    kieImageUrl = queryData.data.resultUrl;
+    break;
+  }
+  
+  attempts++;
+}
+```
+
+**From source:** `supabase/functions/cabina-vision/index.ts:185-216`
+
+## Error Codes
+
+<ResponseField name="UPLOAD_FAIL" type="string">
+  Photo upload failed on both Kie.ai and Supabase
+  
+  **Solution:** Check image size and format
+</ResponseField>
+
+<ResponseField name="KIE_402" type="string">
+  Insufficient AI credits in Kie.ai account
+  
+  **Solution:** Top up Kie.ai account or add backup API key to pool
+</ResponseField>
+
+<ResponseField name="KIE_401" type="string">
+  Invalid Kie.ai API credentials
+  
+  **Solution:** Verify `BANANA_API_KEY` secret is correct
+</ResponseField>
+
+<ResponseField name="RPC_DENIED" type="string">
+  Event has no remaining credits
+  
+  **Solution:** Allocate more credits to the event
+</ResponseField>
+
+<ResponseField name="KIE_FAILED_STATE" type="string">
+  AI generation task failed
+  
+  **Solution:** Check Kie.ai dashboard for details, retry with different photo
+</ResponseField>
+
+## Environment Variables
+
+<ParamField path="SUPABASE_URL" type="string" required>
+  Auto-injected by Supabase
+</ParamField>
+
+<ParamField path="SUPABASE_SERVICE_ROLE_KEY" type="string" required>
+  Auto-injected by Supabase
+</ParamField>
+
+<ParamField path="BANANA_API_KEY" type="string" required>
+  Kie.ai API key (fallback if pool is empty)
+  
+  Set via: `supabase secrets set BANANA_API_KEY=your-key`
+</ParamField>
+
+## Performance
+
+**Typical Response Times:**
+- Upload + Task creation: 2-5 seconds
+- AI generation: 10-30 seconds
+- Storage + DB write: 1-2 seconds
+- **Total:** 15-40 seconds
+
+**Optimization Tips:**
+- Use multiple API keys in pool to distribute load
+- Pre-compress images client-side to reduce upload time
+- Consider client-side polling instead of server-side for faster response
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Payment Webhook" icon="credit-card" href="/api/payment-webhook">
+    Mercado Pago integration
+  </Card>
+  <Card title="AI Model Integration" icon="brain" href="/technical/ai-model-integration">
+    Deep dive into AI pipeline
+  </Card>
+</CardGroup>

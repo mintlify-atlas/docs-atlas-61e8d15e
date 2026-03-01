@@ -1,0 +1,222 @@
+---
+title: 'Guest Experience'
+description: 'Seamless photo booth interface for event guests with no login required'
+icon: 'users'
+---
+
+Guests access photo booths through unique event links with a streamlined, no-login-required experience optimized for mobile and tablet kiosks.
+
+## Access Flow
+
+### Event Link Structure
+```
+https://cabina.creativa.lab/?event=wedding-ana-juan
+```
+
+<Steps>
+  <Step title="Scan QR Code or Click Link">
+    Guests receive link via QR code, message, or social media
+  </Step>
+  <Step title="Automatic Event Detection">
+    App detects `?event=` parameter and loads event configuration
+  </Step>
+  <Step title="Validation">
+    System checks:
+    - Event exists
+    - Start/end dates are valid
+    - Credits remain available
+  </Step>
+  <Step title="Branded Interface Loads">
+    Custom logo, colors, and selected styles display
+  </Step>
+</Steps>
+
+## Pre-Event Experience
+
+If `start_date` is in the future and `show_welcome_screen` is enabled:
+
+<Frame>
+  <div style={{ background: '#0a0a0a', padding: '40px', borderRadius: '20px', textAlign: 'center' }}>
+    <div style={{ fontSize: '12px', color: '#ff5500', marginBottom: '10px' }}>PRÓXIMAMENTE</div>
+    <h2 style={{ fontSize: '32px', margin: '10px 0', color: 'white' }}>Boda de Ana y Juan</h2>
+    <div style={{ height: '2px', width: '40px', background: '#ff5500', margin: '10px auto' }}></div>
+    <p style={{ color: '#999', marginTop: '20px' }}>¡Bienvenidos a nuestra boda!</p>
+    <div style={{ marginTop: '20px', fontSize: '10px', color: '#555' }}>⏰ Comienza el 15 de junio a las 18:00hs</div>
+  </div>
+</Frame>
+
+## Main Interface
+
+### Style Gallery
+Guests see only the styles selected by the event organizer:
+- Category filters (if multiple categories)
+- Search by name or tags
+- Visual style previews
+- Tap to select style
+
+<Info>
+  If the event has selected specific styles, guests only see those styles. Otherwise, all active platform styles are available.
+</Info>
+
+### Photo Capture
+
+**Camera Interface Features**:
+- Auto-request camera permissions
+- Front-facing camera default
+- Live preview with mirror effect
+- Large capture button
+- Retake option
+
+```javascript
+const stream = await navigator.mediaDevices.getUserMedia({
+  video: { 
+    facingMode: 'user',        // Front camera
+    width: { ideal: 1280 },
+    height: { ideal: 720 }
+  }
+});
+```
+
+### Processing Screen
+
+While AI generates the photo:
+
+<CardGroup cols={2}>
+  <Card icon="loader">
+    **Animated Progress Bar**
+    Intelligent percentage based on elapsed time
+  </Card>
+  <Card icon="message-circle">
+    **Rotating Fun Facts**
+    Educational phrases rotate every 6 seconds
+  </Card>
+</CardGroup>
+
+Sample phrases:
+- "Invocando a los genios digitales para tu retrato... ✨"
+- "¿Sabías que la IA analiza miles de patrones para crear tu estilo? 🧠"
+- "Dato curioso: La IA no duerme, pero toma mucho café virtual ☕"
+
+### Result Screen
+
+Generated photo displays with action buttons:
+
+<CardGroup cols={3}>
+  <Card title="Download" icon="download">
+    Mobile: Opens native share sheet
+    Desktop: Direct download
+  </Card>
+  <Card title="Share" icon="share-2">
+    Uses Web Share API on supported devices
+  </Card>
+  <Card title="New Photo" icon="camera">
+    Return to style selection
+  </Card>
+</CardGroup>
+
+## Mobile Optimizations
+
+### Responsive Layout
+- Single-column style grid on mobile
+- Full-screen camera capture
+- Large touch targets (min 44px)
+- Swipeable style carousel
+
+### Share API Integration
+```javascript
+if (navigator.share && navigator.canShare({ files: [file] })) {
+  await navigator.share({
+    files: [file],
+    title: 'Mi Foto Creativa',
+    text: '¡Mira mi foto generada con IA!'
+  });
+}
+```
+
+### Download Fallbacks
+1. Try native share (mobile)
+2. Blob download link (desktop)
+3. Open in new tab (fallback)
+4. Direct URL navigation (last resort)
+
+## Error Handling
+
+### Credit Exhaustion
+```javascript
+if (credits_remaining <= 0) {
+  return (
+    <div>🎟️ Los créditos del evento se agotaron.</div>
+  )
+}
+```
+
+### Event Not Started
+```javascript
+if (new Date(start_date) > new Date()) {
+  return (
+    <div>🗓️ Este evento aún no comenzó. Arranca el {formattedDate}</div>
+  )
+}
+```
+
+### Event Ended
+```javascript
+if (new Date(end_date) < new Date()) {
+  return (
+    <div>🎬 Este evento ya finalizó. ¡Gracias por participar!</div>
+  )
+}
+```
+
+### Connection Issues
+If AI generation times out:
+- Show "VAR mode" message
+- Explain photo is still processing
+- Allow browsing while waiting
+- Background job notification
+
+## Privacy & Data
+
+<Warning>
+  Guest photos are stored with event association but no personal identification unless email is optionally provided.
+</Warning>
+
+### Anonymous Usage
+- No login required
+- No email collection (unless configured)
+- Photos linked to event, not individual
+- Guest ID: `cabina_{timestamp}`
+
+### Data Retention
+- Photos stored in event gallery
+- Accessible via gallery mode link
+- Event owner controls deletion
+- Individual photo deletion available
+
+## Accessibility Features
+
+- High contrast UI (white on black)
+- Large text sizes (minimum 14px)
+- Clear visual feedback
+- Screen reader compatible
+- Keyboard navigation support
+- Touch-optimized controls
+
+## Kiosk Mode
+
+For iPad/tablet installations:
+
+1. **Guided Access** (iOS)
+   - Locks to Cabina app
+   - Disables home button
+   - Prevents app switching
+
+2. **Full-Screen Mode**
+   - Add to home screen
+   - Hides browser chrome
+   - Immersive experience
+
+3. **Auto-Reset Timer**
+   - Returns to home after 30s inactivity
+   - Clears previous session
+   - Ready for next guest

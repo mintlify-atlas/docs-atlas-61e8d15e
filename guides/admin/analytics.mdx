@@ -1,0 +1,507 @@
+---
+title: Platform Analytics
+description: Monitor platform performance, track metrics, and analyze usage patterns across the Cabina ecosystem
+---
+
+## Analytics Overview
+
+As a Master Administrator, you have access to comprehensive analytics across the entire platform. Use these insights to:
+
+- 📈 Track growth and adoption
+- 💰 Monitor revenue and credit flow
+- 🎯 Identify top-performing partners and styles
+- 🔍 Detect issues and anomalies
+- 🛠️ Make data-driven decisions
+
+## Accessing Analytics
+
+Analytics data is distributed across several dashboard views:
+
+### Overview Tab
+
+Provides high-level platform metrics:
+- System Pulse status
+- Total partners, events, users
+- Credits in circulation
+- Recent activity logs
+
+### Partners Tab
+
+Partner-specific analytics:
+- Partner count (active vs. inactive)
+- Total events across network
+- Credits in channels (unallocated)
+- Average consumption ratio
+
+### B2C Tab
+
+End-user analytics:
+- Total B2C users
+- Active users (30-day)
+- Revenue this month
+- Average credits per user
+
+### Styles Tab
+
+Style performance data:
+- Total style count
+- Most-used styles
+- Style categories popularity
+- Inactive styles
+
+### Logs Tab
+
+Activity audit trail:
+- User actions
+- System events
+- Error tracking
+- Transaction history
+
+<Info>
+**Advanced Analytics:** For custom reports, dashboards, or BI tool integration (Tableau, Power BI, etc.), contact development for database access or API keys.
+</Info>
+
+## Key Performance Indicators (KPIs)
+
+### Platform Health KPIs
+
+<Tabs>
+  <Tab title="System Availability">
+    **Metric:** Uptime percentage
+    
+    **Target:** ≥ 99.5%
+    
+    **How to Monitor:**
+    - System Pulse indicator (green = up)
+    - Review Logs for downtime events
+    - External monitoring service (Pingdom, UptimeRobot)
+    
+    **Action if Low:**
+    - Investigate infrastructure issues
+    - Check database performance
+    - Review API rate limits (Replicate)
+    - Scale servers if needed
+  </Tab>
+  
+  <Tab title="Error Rate">
+    **Metric:** Failed operations / Total operations
+    
+    **Target:** < 1%
+    
+    **How to Monitor:**
+    - Filter Logs by error events
+    - Count errors per day
+    - Calculate ratio
+    
+    **Common Errors:**
+    - Payment processing failures
+    - Image generation timeouts
+    - Database connection issues
+    
+    **Action if High:**
+    - Review Logs for patterns
+    - Fix code bugs
+    - Increase timeout limits
+    - Contact third-party services (Mercado Pago, Replicate)
+  </Tab>
+  
+  <Tab title="Response Time">
+    **Metric:** Average API response time
+    
+    **Target:** < 2 seconds
+    
+    **How to Monitor:**
+    - Click System Pulse for detailed metrics
+    - Use browser DevTools Network tab
+    - APM tools (New Relic, DataDog)
+    
+    **Action if Slow:**
+    - Optimize database queries
+    - Add caching (Redis)
+    - Review server resources (CPU, RAM)
+    - CDN for static assets
+  </Tab>
+</Tabs>
+
+### Growth KPIs
+
+<Tabs>
+  <Tab title="Partner Growth Rate">
+    **Metric:** (New Partners This Month / Total Partners Last Month) × 100
+    
+    **Target:** ≥ 10% month-over-month
+    
+    **How to Track:**
+    - Count partners approved this month
+    - Compare to previous month
+    - Track in spreadsheet or BI tool
+    
+    **Strategies to Increase:**
+    - Marketing campaigns
+    - Referral incentives
+    - Partner success stories
+    - Industry event sponsorships
+  </Tab>
+  
+  <Tab title="Event Volume">
+    **Metric:** Total events created per month
+    
+    **Target:** Steady increase (10-20% MoM)
+    
+    **How to Track:**
+    - Partners tab shows "Total Eventos Red"
+    - Export partner data monthly
+    - Compare month-over-month
+    
+    **Insights:**
+    - Seasonal patterns (weddings peak May-Oct)
+    - Partner engagement (events per partner)
+    - Platform capacity needs
+  </Tab>
+  
+  <Tab title="User Acquisition (B2C)">
+    **Metric:** New B2C users per month
+    
+    **Target:** Depends on business model (100+ for SaaS focus)
+    
+    **How to Track:**
+    - B2C tab shows total users
+    - Query users table by created_at
+    - Track registration sources
+    
+    **Strategies:**
+    - SEO and content marketing
+    - Social media campaigns
+    - Partner co-marketing
+    - Referral programs
+  </Tab>
+</Tabs>
+
+### Financial KPIs
+
+<Tabs>
+  <Tab title="Monthly Recurring Revenue (MRR)">
+    **Metric:** Predictable monthly income from subscriptions/contracts
+    
+    **Calculation:**
+    - Sum of partner contract values
+    - Plus B2C subscription fees (if applicable)
+    
+    **How to Track:**
+    - Manual: Track partner contracts in spreadsheet
+    - Automated: Payment gateway webhooks
+    
+    **Target:** Steady growth, low churn
+  </Tab>
+  
+  <Tab title="Credit Consumption Rate">
+    **Metric:** Credits consumed / Credits sold
+    
+    **Target:** 60-80% (engaged but not over-allocated)
+    
+    **How to Calculate:**
+    - Partners tab shows "Ratio de Consumo"
+    - (Credits Used Across Partners) / (Credits Total) × 100
+    
+    **Insights:**
+    - < 50%: Partners not using platform (investigate why)
+    - > 90%: High engagement, risk of running out (good for top-ups)
+  </Tab>
+  
+  <Tab title="Revenue Per Partner">
+    **Metric:** Total revenue / Number of active partners
+    
+    **Target:** Varies (track trend)
+    
+    **How to Calculate:**
+    - Sum all partner credit purchases
+    - Divide by active partner count
+    
+    **Use:**
+    - Identify high-value vs. low-value partners
+    - Inform pricing strategies
+    - Plan support resources
+  </Tab>
+</Tabs>
+
+### Engagement KPIs
+
+<Tabs>
+  <Tab title="Generations Per Event">
+    **Metric:** Average photo generations per event
+    
+    **Target:** Varies by event type (50-500)
+    
+    **How to Calculate:**
+    - Total generations / Total events
+    - Review in Logs or via database query
+    
+    **Insights:**
+    - Low average: Events not engaging guests (improve UX, marketing)
+    - High average: Strong engagement (showcase success stories)
+  </Tab>
+  
+  <Tab title="Active Partners Ratio">
+    **Metric:** Partners with events this month / Total partners
+    
+    **Target:** ≥ 60%
+    
+    **How to Calculate:**
+    - Count partners with ≥ 1 event in last 30 days
+    - Divide by total partner count
+    
+    **Action if Low:**
+    - Re-engagement campaigns
+    - Check for technical barriers
+    - Offer training/support
+  </Tab>
+  
+  <Tab title="Style Diversity">
+    **Metric:** Number of different styles used / Total styles available
+    
+    **Target:** ≥ 40%
+    
+    **How to Track:**
+    - Styles tab shows usage counts
+    - Count styles with usage > 0
+    - Calculate percentage
+    
+    **Action if Low:**
+    - Poor style names/thumbnails (improve discoverability)
+    - Unpopular styles (consider retiring)
+    - Lack of variety in popular packs (add more)
+  </Tab>
+</Tabs>
+
+## Interpreting Dashboard Metrics
+
+### Partners Tab Analytics
+
+**"Partners Activos" Card:**
+- Shows count of non-deactivated partners
+- Compare to last month (growth/churn)
+- Goal: Steady increase
+
+**"Total Eventos Red" Card:**
+- Sum of all events across all partners
+- Indicates platform usage volume
+- Goal: 10-20% MoM growth
+
+**"Créditos en Canales" Card:**
+- Total unallocated partner credits (liability)
+- Represents purchased but not consumed credits
+- High number = good (revenue), but watch consumption
+
+**"Ratio de Consumo" Card:**
+- Average credit usage across partners
+- Formula: `(Sum of all partner credits_used) / (Sum of all partner credits_total) × 100`
+- Ideal range: 60-80%
+  - < 50%: Partners buying but not using (training issue?)
+  - > 90%: High engagement (opportunity to upsell)
+
+### B2C Tab Analytics
+
+**"Total B2C Users" Card:**
+- Count of all end-user accounts
+- Track growth rate month-over-month
+
+**"Active Users (30d)" Card:**
+- Users with ≥ 1 generation in last 30 days
+- Calculate activation rate: Active / Total × 100
+- Target: ≥ 25-30%
+
+**"Revenue This Month" Card:**
+- Sum of B2C credit purchases this calendar month
+- Compare to previous months
+- Track seasonality
+
+**"Avg Credits Per User" Card:**
+- Total credits purchased / Number of users
+- Indicates spending behavior
+- Segment users by spending tier
+
+## Custom Reports & Exports
+
+### Exporting Data
+
+<Note>
+**Future Feature:** Built-in export functionality is planned. Currently, exports require database queries or contacting development.
+</Note>
+
+**Available Exports (Request from Dev):**
+
+1. **Partner List CSV:**
+   - Columns: ID, Name, Email, Credits Total, Credits Used, Event Count, Active Status, Created Date
+   - Use: Accounting, partner outreach lists
+
+2. **Transaction Log CSV:**
+   - Columns: Date, Actor, Action Type, Amount, Description
+   - Use: Financial reconciliation, audit compliance
+
+3. **Event List CSV:**
+   - Columns: Event ID, Name, Slug, Partner, Client, Credits Allocated, Credits Used, Generations Count, Created Date
+   - Use: Event analysis, partner performance
+
+4. **Generation Stats CSV:**
+   - Columns: Generation ID, Event, User, Style, Timestamp, Status
+   - Use: Usage patterns, style popularity
+
+5. **Style Usage CSV:**
+   - Columns: Style ID, Name, Category, Usage Count, Last Used
+   - Use: Style curation, retirement decisions
+
+### Building Custom Dashboards
+
+For advanced analytics:
+
+**Option 1: Database Access**
+- Request read-only database credentials
+- Connect BI tool (Tableau, Power BI, Metabase)
+- Build custom queries and visualizations
+
+**Option 2: API Integration**
+- Request API keys with analytics scope
+- Pull data programmatically
+- Build custom dashboards in React, Vue, etc.
+
+**Option 3: Google Sheets Integration**
+- Use Zapier or Make.com to sync data
+- Create live dashboards in Google Sheets
+- Share with team members
+
+<Info>
+**Contact Development:** To set up custom analytics, email dev@metalabia.com with your requirements and use case.
+</Info>
+
+## Analyzing Trends
+
+### Seasonal Patterns
+
+**Weddings:**
+- Peak: May-October (Northern Hemisphere)
+- Low: November-March
+- Plan capacity and marketing accordingly
+
+**Corporate Events:**
+- Peak: September-November (conferences, year-end)
+- Low: July-August (vacations)
+- Target Q3-Q4 for sales pushes
+
+**Holidays:**
+- Spikes: Christmas parties (Dec), New Year (Jan), Valentine's (Feb)
+- Plan promotions around these dates
+
+### User Behavior Insights
+
+**From Logs:**
+- Peak usage times (evenings, weekends for B2C)
+- Average session duration
+- Drop-off points (where users abandon)
+
+**From Generation Data:**
+- Popular styles (prioritize in UI)
+- Style pack preferences by event type
+- Quality issues (styles with high deletion rate)
+
+**From Financial Data:**
+- Average credit purchase size
+- Repeat purchase rate
+- Price sensitivity (test promotions)
+
+## Performance Benchmarks
+
+### Platform Benchmarks (Target Ranges)
+
+| Metric | Good | Needs Improvement |
+|--------|------|-------------------|
+| System Uptime | ≥ 99.5% | < 99% |
+| Error Rate | < 1% | > 3% |
+| Avg Response Time | < 2s | > 5s |
+| Partner Growth (MoM) | ≥ 10% | < 5% |
+| Partner Churn (MoM) | < 5% | > 10% |
+| Credit Consumption | 60-80% | < 50% or > 95% |
+| Active Partner Ratio | ≥ 60% | < 40% |
+| Generations Per Event | ≥ 100 | < 50 |
+| B2C User Activation | ≥ 30% | < 15% |
+| Revenue Growth (MoM) | ≥ 15% | < 5% |
+
+### Partner Segmentation
+
+**By Activity Level:**
+
+- **Power Partners**: ≥ 10 events/month, ≥ 80% credit usage
+- **Active Partners**: 3-9 events/month, 50-80% usage
+- **Occasional Partners**: 1-2 events/month, < 50% usage
+- **Dormant Partners**: 0 events in 90 days
+
+**Actions by Segment:**
+
+- **Power Partners**: VIP support, early access to features, volume discounts
+- **Active Partners**: Standard support, upsell opportunities
+- **Occasional Partners**: Re-engagement campaigns, training offers
+- **Dormant Partners**: Win-back campaigns, feedback surveys, consider deactivation
+
+## Alerting & Monitoring
+
+### Critical Alerts to Set Up
+
+<Warning>
+**Configure Alerts:** Work with development to set up automated alerts for these critical events.
+</Warning>
+
+**System Alerts:**
+- 🚨 System Pulse turns red (immediate)
+- 🚨 Error rate > 5% (within 5 minutes)
+- 🚨 Database connection failures (immediate)
+- 🚨 API service outages (immediate)
+
+**Business Alerts:**
+- 💬 Daily summary email (stats, new partners, top events)
+- 💬 Low credit warning for partners (< 10% remaining)
+- 💬 New partner applications (within 1 hour)
+- 💬 High-value transactions (> $500 credit purchase)
+
+**Security Alerts:**
+- 🔒 Unusual login patterns (multiple failed attempts)
+- 🔒 Bulk deletions or data exports
+- 🔒 Unauthorized API access attempts
+
+## Best Practices
+
+### Daily Reviews
+- ✅ Check System Pulse (green?)
+- ✅ Review overnight Logs for errors
+- ✅ Approve new partner applications
+- ✅ Respond to support tickets
+
+### Weekly Reviews
+- 📅 Compare current week to last week (growth?)
+- 📅 Identify top-performing partners (recognize them)
+- 📅 Review inactive partners (re-engage)
+- 📅 Analyze style usage (retire unpopular styles)
+
+### Monthly Reviews
+- 📊 Calculate MoM growth for all KPIs
+- 📊 Export data for accounting/reporting
+- 📊 Conduct partner performance reviews
+- 📊 Plan next month's marketing/sales strategy
+
+### Quarterly Reviews
+- 📈 Deep-dive analysis (trends, seasonality)
+- 📈 Roadmap planning (features, infrastructure)
+- 📈 Financial forecasting
+- 📈 Team retrospectives
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Master Dashboard" icon="gauge" href="/guides/admin/master-dashboard">
+    Navigate the admin control panel
+  </Card>
+  <Card title="Manage Partners" icon="handshake" href="/guides/admin/managing-partners">
+    Oversee partner accounts
+  </Card>
+  <Card title="Style Management" icon="palette" href="/guides/admin/style-management">
+    Optimize AI style catalog
+  </Card>
+</CardGroup>

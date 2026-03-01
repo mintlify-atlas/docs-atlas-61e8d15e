@@ -1,0 +1,253 @@
+---
+title: 'Event Configuration'
+description: 'Advanced event settings and real-time management options'
+icon: 'sliders'
+---
+
+Configure every aspect of your photo booth event from credit limits to style selections and branding themes.
+
+## Configuration Overview
+
+Events support comprehensive customization through the `config` JSON object:
+
+```typescript
+interface EventConfig {
+  logo_url?: string;              // Custom event logo
+  primary_color?: string;         // Brand color (hex)
+  welcome_text?: string;          // Hero section message
+  radius?: string;                // Border radius theme
+  show_welcome_screen?: boolean;  // Pre-event countdown
+}
+```
+
+## Credit Management
+
+### Initial Allocation
+Set during event creation:
+```javascript
+credits_allocated: 100  // Total generations available
+```
+
+### Real-Time Tracking
+```javascript
+credits_used: 47        // Automatically incremented
+credits_remaining: 53   // Calculated: allocated - used
+```
+
+### Credit Top-Up
+Partners can add credits during active events:
+
+<Steps>
+  <Step title="Open Event">
+    Click on the event card in the dashboard
+  </Step>
+  <Step title="Top-Up Button">
+    Click the credit card icon in the event header
+  </Step>
+  <Step title="Enter Amount">
+    Specify additional credits (1-1000)
+  </Step>
+  <Step title="Confirm">
+    Credits added instantly, deducted from partner balance
+  </Step>
+</Steps>
+
+<Info>
+  Credit usage is atomic - protected against race conditions using database transactions.
+</Info>
+
+## Style Configuration
+
+### Style Selection Interface
+
+Three modes available:
+
+1. **All Styles** (default)
+   - No selection = all active styles available
+   - Maximum flexibility for guests
+
+2. **Category Selection**
+   - Select all styles from specific categories
+   - Example: Only "Cinema" + "Fantasy"
+
+3. **Individual Selection**
+   - Handpick specific styles
+   - Perfect for themed events
+
+### Selected Styles Array
+```javascript
+selected_styles: [
+  "jhonw_a",     // Baba Yaga
+  "jhonw_b",     // The Continental
+  "sup_a",       // The Avenger
+  "pb_a"         // Thomas Shelby
+]
+```
+
+### Real-Time Updates
+Style selections can be modified during active events:
+```javascript
+// Update selected_styles array
+const { error } = await supabase
+  .from('events')
+  .update({ selected_styles: newSelection })
+  .eq('id', eventId);
+
+// Guests see changes immediately via real-time sync
+```
+
+## Date & Time Configuration
+
+### Start Date Behavior
+
+If `start_date` is set and in the future:
+
+**With Welcome Screen** (`show_welcome_screen: true`):
+```javascript
+{
+  start_date: "2026-06-15T18:00:00",
+  config: { show_welcome_screen: true }
+}
+```
+Guests see:
+- Event logo
+- Event name
+- Countdown timer
+- Custom welcome message
+
+**Without Welcome Screen** (`show_welcome_screen: false`):
+```javascript
+{
+  start_date: "2026-06-15T18:00:00",
+  config: { show_welcome_screen: false }
+}
+```
+Guests see:
+- Error message: "Este evento aún no comenzó"
+- Start date formatted in Spanish
+- No access to booth
+
+### End Date Behavior
+
+If `end_date` is set and in the past:
+```javascript
+{
+  end_date: "2026-06-16T02:00:00"
+}
+```
+Guests see:
+- "Este evento ya finalizó"
+- Thank you message
+- No access to booth
+- Gallery mode still accessible
+
+## Branding Configuration
+
+### Logo Management
+
+<Tabs>
+  <Tab title="Upload">
+    ```javascript
+    const handleLogoUpload = async (file: File) => {
+      const fileName = `event-logos/${eventId}/${Date.now()}-${file.name}`;
+      
+      const { data, error } = await supabase.storage
+        .from('public-assets')
+        .upload(fileName, file);
+      
+      const publicURL = supabase.storage
+        .from('public-assets')
+        .getPublicUrl(data.path).data.publicUrl;
+      
+      // Update event config
+      await updateEventConfig({ logo_url: publicURL });
+    };
+    ```
+  </Tab>
+  <Tab title="Display">
+    Logo appears in:
+    - Top-left corner (all pages)
+    - Pre-event welcome screen
+    - Gallery header
+    - QR code downloads (future)
+  </Tab>
+</Tabs>
+
+### Color Theming
+
+Primary color cascades through CSS variables:
+
+```javascript
+useEffect(() => {
+  if (eventConfig?.config?.primary_color) {
+    const primary = eventConfig.config.primary_color;
+    const glow = hexToRgba(primary, 0.4);
+    
+    document.documentElement.style.setProperty('--accent-color', primary);
+    document.documentElement.style.setProperty('--accent-glow', glow);
+  }
+}, [eventConfig]);
+```
+
+Affected elements:
+- All buttons with `bg-accent` class
+- Progress bars
+- Selection highlights
+- Glow effects
+- Link hover states
+
+## Active Status Toggle
+
+<ParamField path="is_active" type="boolean" default="true">
+  Controls event visibility and accessibility
+</ParamField>
+
+**Active (`is_active: true`)**:
+- Event appears in partner dashboard
+- Event link is accessible
+- Guests can generate photos
+- Counts toward analytics
+
+**Inactive (`is_active: false`)**:
+- Event hidden from main dashboard
+- Event link shows error
+- No new generations allowed
+- Visible only in "Inactive Events" filter
+
+## Validation Rules
+
+<Warning>
+  Events automatically become inaccessible when `credits_remaining` reaches 0, even if still active.
+</Warning>
+
+### Enforced Constraints
+
+1. **Unique Slug**: Event slug must be unique across all events
+2. **Credit Minimum**: At least 1 credit required
+3. **Date Logic**: End date must be after start date (if both set)
+4. **Partner Balance**: Cannot allocate more credits than partner owns
+
+## Real-Time Synchronization
+
+Configuration updates propagate instantly:
+
+```javascript
+// Supabase real-time channel
+const channel = supabase
+  .channel(`event_${eventId}`)
+  .on('postgres_changes', {
+    event: 'UPDATE',
+    schema: 'public',
+    table: 'events',
+    filter: `id=eq.${eventId}`
+  }, (payload) => {
+    setEventConfig(payload.new);
+  })
+  .subscribe();
+```
+
+Changes reflected immediately:
+- Style selection updates
+- Credit top-ups
+- Branding modifications
+- Status toggles

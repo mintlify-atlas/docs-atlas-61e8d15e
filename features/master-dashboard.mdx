@@ -1,0 +1,343 @@
+---
+title: 'Master Dashboard'
+description: 'Platform-wide administration with partner management and analytics'
+icon: 'shield'
+---
+
+The Master Dashboard provides platform administrators complete control over partners, users, styles, and system-wide analytics.
+
+## Accessing Admin Panel
+
+Master users access the admin dashboard via:
+```
+https://cabina.creativa.lab/dashboard.html
+```
+
+<Info>
+  Only users with `is_master: true` or `role: 'admin'` can access the Master Dashboard.
+</Info>
+
+## Dashboard Views
+
+### Overview
+
+Platform-wide statistics at a glance:
+
+<CardGroup cols={3}>
+  <Card title="Total Partners" icon="users">
+    Active and pending partners count
+  </Card>
+  <Card title="B2C Users" icon="user">
+    Individual consumer accounts
+  </Card>
+  <Card title="Total Generations" icon="image">
+    Platform-wide AI photo count
+  </Card>
+  <Card title="Credits in Circulation" icon="zap">
+    Sum of all partner + user balances
+  </Card>
+  <Card title="Revenue (MTD)" icon="dollar-sign">
+    Month-to-date earnings
+  </Card>
+  <Card title="Active Events" icon="calendar">
+    Currently running events
+  </Card>
+</CardGroup>
+
+### Recent Activity
+
+Real-time platform activity log:
+```javascript
+const recentLogs = await supabase
+  .from('admin_logs')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(20);
+```
+
+Log entries include:
+- Partner creations/approvals
+- Credit top-ups
+- Event creations
+- User registrations
+- Style modifications
+- System errors
+
+## Partner Management
+
+### Partners Section
+
+<Tabs>
+  <Tab title="Active Partners">
+    List of approved partners:
+    - Company name
+    - Contact email
+    - Credit balance
+    - Total events
+    - Monthly revenue
+    - Action buttons (Top-Up, Edit, Deactivate)
+  </Tab>
+  <Tab title="Pending Approvals">
+    Partner registration requests:
+    - Business information
+    - Requested credit allocation
+    - Approve/Reject buttons
+    - Notes field for communication
+  </Tab>
+  <Tab title="Inactive Partners">
+    Deactivated partner accounts:
+    - Deactivation date
+    - Reason for deactivation
+    - Reactivate option
+  </Tab>
+</Tabs>
+
+### Creating Partners
+
+<Steps>
+  <Step title="Click Create Partner">
+    Open partner creation modal
+  </Step>
+  <Step title="Enter Business Details">
+    - Company name
+    - Contact name
+    - Email address
+    - Phone number
+    - Tax ID (optional)
+  </Step>
+  <Step title="Allocate Credits">
+    Set initial credit balance
+  </Step>
+  <Step title="Set Commission Rate">
+    Default: 30% platform commission
+  </Step>
+  <Step title="Configure Branding">
+    Optional: Set default primary color
+  </Step>
+</Steps>
+
+### Partner Top-Up
+
+Add credits to partner accounts:
+
+```javascript
+const handleTopUpPartner = async (partnerId, amount) => {
+  const { error } = await supabase.rpc('partner_credit_topup', {
+    p_partner_id: partnerId,
+    p_credits: amount,
+    p_admin_id: user.id
+  });
+  
+  // Log transaction
+  await supabase.from('transactions').insert({
+    partner_id: partnerId,
+    amount: amount,
+    type: 'credit_purchase',
+    admin_id: user.id
+  });
+};
+```
+
+<Warning>
+  Credit top-ups are irreversible. Double-check amounts before confirming.
+</Warning>
+
+## B2C User Management
+
+Manage individual consumer accounts:
+
+### User List Features
+
+- **Search**: By name, email, or ID
+- **Filter**: By credit balance, generation count, signup date
+- **Sort**: By any column
+- **Bulk Actions**: Credit top-ups, role changes
+
+### User Details Modal
+
+<ParamField path="full_name" type="string">
+  User's display name
+</ParamField>
+
+<ParamField path="email" type="string">
+  Account email (readonly)
+</ParamField>
+
+<ParamField path="credits" type="number">
+  Current credit balance
+</ParamField>
+
+<ParamField path="total_generations" type="number">
+  Lifetime generation count
+</ParamField>
+
+<ParamField path="role" type="enum">
+  Options: `user`, `partner`, `admin`, `master`
+</ParamField>
+
+<ParamField path="unlocked_packs" type="array">
+  Premium style packs purchased
+</ParamField>
+
+### Credit Management
+
+Add or deduct user credits:
+```javascript
+const handleUserTopUp = async (userId, amount) => {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      credits: supabase.raw(`credits + ${amount}`) 
+    })
+    .eq('id', userId);
+};
+```
+
+## Style Manager
+
+### Global Style Controls
+
+<CardGroup cols={2}>
+  <Card title="Toggle Visibility" icon="eye">
+    Show/hide styles platform-wide
+  </Card>
+  <Card title="Premium Status" icon="lock">
+    Mark styles as premium or free
+  </Card>
+  <Card title="Upload Custom Styles" icon="upload">
+    Add new AI model styles
+  </Card>
+  <Card title="Usage Analytics" icon="chart-bar">
+    View popularity statistics
+  </Card>
+</CardGroup>
+
+### Style Metadata Editor
+
+```typescript
+interface StyleMetadata {
+  id: string;              // Style identifier
+  label: string;           // Display name
+  image_url: string;       // Preview image
+  category: string;        // Main category
+  subcategory: string;     // Subcategory/pack name
+  is_premium: boolean;     // Premium flag
+  is_active: boolean;      // Visibility toggle
+  usage_count: number;     // Total generations
+  tags: string[];          // Search tags
+}
+```
+
+### Hierarchical Overrides
+
+Style visibility follows inheritance:
+
+1. **Category Level**: Hide entire category (e.g., all "Sports")
+2. **Subcategory Level**: Hide pack (e.g., "Peaky Blinders")
+3. **Individual Level**: Hide specific style (e.g., "Thomas Shelby")
+
+```javascript
+// Category override
+if (catMeta && catMeta.is_active === false) isActive = false;
+
+// Subcategory override
+if (subCatMeta && subCatMeta.is_active === false) isActive = false;
+
+// Individual override
+if (individualMeta && individualMeta.is_active === false) isActive = false;
+```
+
+## Admin Logs
+
+Comprehensive audit trail:
+
+<Tabs>
+  <Tab title="Actions Logged">
+    - Partner creation/modification
+    - Credit top-ups
+    - Style changes
+    - User role changes
+    - Event approvals
+    - System errors
+  </Tab>
+  <Tab title="Log Structure">
+    ```typescript
+    {
+      id: string,
+      action: string,
+      admin_id: string,
+      target_id: string,
+      details: object,
+      created_at: timestamp
+    }
+    ```
+  </Tab>
+  <Tab title="Filtering">
+    - By action type
+    - By admin user
+    - By date range
+    - By target entity
+  </Tab>
+</Tabs>
+
+## Analytics & Reporting
+
+### Platform Metrics
+
+```javascript
+const stats = {
+  totalPartners: partners.length,
+  totalB2CUsers: b2cUsers.length,
+  totalGenerations: generations.count,
+  creditsInCirculation: sumCredits(partners) + sumCredits(users),
+  activeEvents: events.filter(e => e.is_active).length,
+  monthlyRevenue: calculateRevenue(transactions, 'month')
+};
+```
+
+### Partner Statistics
+
+Per-partner breakdown:
+- Total events created
+- Credits purchased
+- Credits used
+- Generation count
+- Revenue generated
+- Average event size
+
+### B2C Statistics
+
+Consumer metrics:
+- New signups (daily/weekly/monthly)
+- Credit pack purchases
+- Premium pack unlocks
+- Average generations per user
+- Retention rate
+
+## System Settings
+
+<Warning>
+  System-wide settings affect all users and events. Changes take effect immediately.
+</Warning>
+
+### Global Configurations
+
+<ParamField path="free_user_credits" type="number" default="500">
+  Initial credits for new B2C users
+</ParamField>
+
+<ParamField path="generation_cost" type="number" default="100">
+  Credits per AI generation
+</ParamField>
+
+<ParamField path="premium_pack_price" type="number" default="3000">
+  Credits to unlock premium style packs
+</ParamField>
+
+<ParamField path="daily_generation_limit" type="number" default="2">
+  Max generations per user per day
+</ParamField>
+
+<ParamField path="commission_rate" type="number" default="0.30">
+  Platform commission on partner sales (30%)
+</ParamField>

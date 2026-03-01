@@ -1,0 +1,170 @@
+---
+title: 'Event Creation'
+description: 'Create custom photo booth events with branded experiences'
+icon: 'calendar-plus'
+---
+
+Partners can create unlimited photo booth events with custom branding, style selections, and credit allocations. Each event gets a unique shareable link.
+
+## Creating an Event
+
+<Steps>
+  <Step title="Access Partner Dashboard">
+    Navigate to the Events section from the Partner Dashboard sidebar.
+  </Step>
+  <Step title="Click Create Event">
+    Open the event creation modal with the "+ Crear Evento" button.
+  </Step>
+  <Step title="Configure Event Details">
+    Fill in basic information:
+    - Event name
+    - Event slug (auto-generated from name)
+    - Credit allocation
+    - Start and end dates (optional)
+  </Step>
+  <Step title="Select AI Styles">
+    Choose which styles guests can access during the event.
+  </Step>
+  <Step title="Customize Branding">
+    Upload logo, set primary color, and welcome text.
+  </Step>
+</Steps>
+
+## Event Settings
+
+### Basic Information
+
+<ParamField path="event_name" type="string" required>
+  Display name shown to guests (e.g., "Boda de Ana y Juan")
+</ParamField>
+
+<ParamField path="event_slug" type="string" required>
+  URL-friendly identifier (e.g., "boda-ana-juan-2026")
+</ParamField>
+
+<ParamField path="credits_allocated" type="number" required>
+  Total number of AI generations available for the event
+</ParamField>
+
+### Date Configuration
+
+<ParamField path="start_date" type="datetime" optional>
+  Event start time. If set, guests see a countdown screen before this time.
+</ParamField>
+
+<ParamField path="end_date" type="datetime" optional>
+  Event end time. After this, the event link shows an "event ended" message.
+</ParamField>
+
+<Info>
+  Leave dates blank for unlimited event duration.
+</Info>
+
+### Style Selection
+
+Choose from all available AI styles:
+- Browse by category (Series, Cinema, Fantasy, Urban, Sports)
+- Search by style name or tags
+- Premium and free styles both available
+- Multi-select interface with visual previews
+
+<Note>
+  If no styles are selected, all active styles will be available to guests.
+</Note>
+
+## Branding Customization
+
+### Logo Upload
+- Supported formats: PNG, JPG, SVG
+- Recommended size: 400x400px transparent PNG
+- Displayed in top-left corner and pre-event screen
+
+### Primary Color
+```javascript
+primary_color: "#ff5500"  // Hex color code
+```
+Affects:
+- Button backgrounds
+- Accent elements
+- Glow effects
+- Progress bars
+- Link hover states
+
+### Welcome Text
+Custom message shown on the hero section:
+```javascript
+welcome_text: "¡Bienvenidos a nuestra boda!"
+```
+
+### Pre-Event Screen
+<ParamField path="show_welcome_screen" type="boolean" default="false">
+  Show a branded countdown screen before event start date
+</ParamField>
+
+When enabled, guests see:
+- Event logo
+- Event name
+- Welcome message
+- Countdown to start time
+- "Powered by MetaLab IA" footer
+
+## Event Link Structure
+
+```
+https://cabina.creativa.lab/?event=your-event-slug
+```
+
+### Gallery Mode
+For post-event viewing:
+```
+https://cabina.creativa.lab/?event=your-event-slug&mode=gallery
+```
+
+## Validation & Limits
+
+<Warning>
+  Event slugs must be unique across all partners. The system auto-generates unique slugs by appending numbers if needed.
+</Warning>
+
+### Credit Validation
+- Minimum: 1 credit per event
+- Maximum: Limited by partner balance
+- Events cannot start with 0 credits allocated
+
+### Date Validation
+- End date must be after start date
+- Past dates are allowed (for historical events)
+- Dates are optional fields
+
+## Advanced Configuration
+
+Additional settings available in the event config object:
+
+```typescript
+config: {
+  logo_url: string,
+  primary_color: string,
+  welcome_text: string,
+  radius: string,              // Border radius theme
+  show_welcome_screen: boolean,
+  auto_print: boolean,         // Future: auto-print on generation
+  watermark: string           // Future: custom watermark
+}
+```
+
+## Post-Creation Actions
+
+<CardGroup cols={2}>
+  <Card title="QR Code Generation" icon="qr-code">
+    Automatically generated for easy guest access
+  </Card>
+  <Card title="Credit Top-Up" icon="credit-card">
+    Add more credits during the event
+  </Card>
+  <Card title="Style Editing" icon="palette">
+    Update available styles in real-time
+  </Card>
+  <Card title="Live Statistics" icon="chart-line">
+    Monitor generation count and credit usage
+  </Card>
+</CardGroup>

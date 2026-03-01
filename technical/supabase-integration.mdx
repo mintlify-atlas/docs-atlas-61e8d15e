@@ -1,0 +1,598 @@
+---
+title: Supabase Integration
+description: Complete guide to Supabase setup and integration in Cabina
+---
+
+## Overview
+
+Cabina uses Supabase as its complete backend infrastructure:
+
+- **Authentication** - Email/password, OAuth providers
+- **Database** - PostgreSQL with Row Level Security
+- **Storage** - File uploads and CDN
+- **Edge Functions** - Serverless API endpoints
+- **Realtime** - Live updates (future feature)
+
+## Initial Setup
+
+### 1. Create Supabase Project
+
+<Steps>
+  <Step title="Sign up">
+    Go to [supabase.com](https://supabase.com) and create an account
+  </Step>
+  
+  <Step title="Create project">
+    - Click "New Project"
+    - Choose organization
+    - Set project name: `cabina-production`
+    - Set database password (save securely!)
+    - Select region (closest to users)
+    - Click "Create new project"
+  </Step>
+  
+  <Step title="Wait for provisioning">
+    Project setup takes ~2 minutes
+  </Step>
+</Steps>
+
+### 2. Get API Credentials
+
+1. Go to **Settings** → **API**
+2. Copy the following:
+   - **Project URL:** `https://xxxxx.supabase.co`
+   - **anon public key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+   - **service_role key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (keep secret!)
+
+<Warning>
+Never expose the `service_role` key in client-side code. It bypasses all RLS policies.
+</Warning>
+
+## Client Configuration
+
+### Supabase Client Setup
+
+The app uses a centralized Supabase client instance:
+
+```typescript src/lib/supabaseClient.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://elesttjfwfhvzdvldytn.supabase.co';
+const supabaseAnonKey = 'sb_publishable_DPfOzwwv2yXK1uvya4RYhQ_uOdKIqn_';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+```
+
+**From source:** `src/lib/supabaseClient.ts`
+
+<Note>
+For production, move these values to environment variables.
+</Note>
+
+### Environment Variables
+
+Update your configuration to use environment variables:
+
+```typescript src/lib/supabaseClient.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+```
+
+```bash .env.local
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+## Authentication
+
+### Email/Password Authentication
+
+Cabina implements email/password auth with Supabase Auth:
+
+```typescript
+import { supabase } from './lib/supabaseClient';
+
+// Sign up
+const signUp = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name
+      }
+    }
+  });
+  
+  if (error) throw error;
+  return data;
+};
+
+// Sign in
+const signIn = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+  
+  if (error) throw error;
+  return data;
+};
+
+// Sign out
+const signOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+};
+```
+
+### Session Management
+
+```typescript
+import { useEffect, useState } from 'react';
+import { supabase } from './lib/supabaseClient';
+import type { Session } from '@supabase/supabase-js';
+
+const App = () => {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return session ? <Dashboard /> : <Login />;
+};
+```
+
+### Profile Creation Trigger
+
+Auto-create profile when user signs up:
+
+```sql
+-- Create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'full_name'
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger the function on user creation
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+```
+
+### OAuth Providers (Optional)
+
+Enable Google OAuth:
+
+1. Go to **Authentication** → **Providers**
+2. Enable **Google**
+3. Add OAuth credentials from [Google Cloud Console](https://console.cloud.google.com)
+4. Configure authorized redirect URLs:
+   ```
+   https://<project-ref>.supabase.co/auth/v1/callback
+   ```
+
+**Client code:**
+
+```typescript
+const signInWithGoogle = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin
+    }
+  });
+  
+  if (error) throw error;
+};
+```
+
+## Database Operations
+
+### Querying Data
+
+```typescript
+// Select all events
+const { data: events, error } = await supabase
+  .from('events')
+  .select('*')
+  .order('created_at', { ascending: false });
+
+// Select with filters
+const { data: activeEvents } = await supabase
+  .from('events')
+  .select('*, partners(name)')
+  .eq('is_active', true)
+  .gte('end_date', new Date().toISOString());
+
+// Single row
+const { data: event } = await supabase
+  .from('events')
+  .select('*')
+  .eq('event_slug', 'quince-sofia')
+  .single();
+```
+
+### Inserting Data
+
+```typescript
+const { data, error } = await supabase
+  .from('events')
+  .insert({
+    partner_id: partnerId,
+    event_name: 'Quince de Sofia',
+    event_slug: 'quince-sofia-2024',
+    credits_allocated: 1000,
+    selected_styles: ['pb_a', 'suit_b'],
+    config: {
+      primary_color: '#FF6B35',
+      logo_url: 'https://...'
+    }
+  })
+  .select()
+  .single();
+```
+
+### Updating Data
+
+```typescript
+// Update single row
+const { error } = await supabase
+  .from('profiles')
+  .update({ credits: credits + 500 })
+  .eq('id', userId);
+
+// Increment atomically
+const { error } = await supabase.rpc('increment_event_credit', {
+  p_event_id: eventId
+});
+```
+
+### Deleting Data
+
+```typescript
+const { error } = await supabase
+  .from('generations')
+  .delete()
+  .eq('id', photoId);
+
+// Bulk delete
+const { error } = await supabase
+  .from('generations')
+  .delete()
+  .in('id', [id1, id2, id3]);
+```
+
+## Storage
+
+### Create Buckets
+
+1. Go to **Storage** in Supabase Dashboard
+2. Click **New bucket**
+3. Create these buckets:
+
+| Bucket Name | Public | Purpose |
+|-------------|--------|----------|
+| `user_photos` | No | Uploaded user selfies |
+| `generations` | Yes | AI-generated images |
+| `event_assets` | Yes | Event logos and branding |
+
+### Upload Files
+
+```typescript
+// Upload user photo
+const uploadPhoto = async (file: File, userId: string) => {
+  const fileName = `uploads/${userId}_${Date.now()}.png`;
+  
+  const { data, error } = await supabase.storage
+    .from('user_photos')
+    .upload(fileName, file, {
+      contentType: 'image/png',
+      upsert: true
+    });
+  
+  if (error) throw error;
+  return data.path;
+};
+```
+
+### Get Public URL
+
+```typescript
+const { data } = supabase.storage
+  .from('generations')
+  .getPublicUrl('results/photo_123.png');
+
+const publicUrl = data.publicUrl;
+// https://xxxxx.supabase.co/storage/v1/object/public/generations/results/photo_123.png
+```
+
+### Download Files
+
+```typescript
+const { data, error } = await supabase.storage
+  .from('generations')
+  .download('results/photo_123.png');
+
+if (data) {
+  const url = URL.createObjectURL(data);
+  // Use url in <img> or download
+}
+```
+
+### Delete Files
+
+```typescript
+const { error } = await supabase.storage
+  .from('user_photos')
+  .remove(['uploads/old_photo.png']);
+```
+
+## Edge Functions
+
+See [Edge Functions API](/api/edge-functions) for complete reference.
+
+### Invoke from Client
+
+```typescript
+const { data, error } = await supabase.functions.invoke('cabina-vision', {
+  body: {
+    user_photo: base64Image,
+    model_id: 'pb_a',
+    event_id: eventId
+  }
+});
+```
+
+## Local Development
+
+### Install Supabase CLI
+
+<CodeGroup>
+```bash macOS
+brew install supabase/tap/supabase
+```
+
+```bash Windows
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+scoop install supabase
+```
+
+```bash Linux
+brew install supabase/tap/supabase
+```
+</CodeGroup>
+
+### Initialize Local Project
+
+```bash
+# Initialize Supabase in project
+supabase init
+
+# Link to remote project
+supabase link --project-ref your-project-ref
+
+# Pull remote schema
+supabase db pull
+```
+
+### Start Local Supabase
+
+```bash
+# Start all services (DB, API, Storage, Auth)
+supabase start
+```
+
+This starts:
+- **API:** `http://localhost:54321`
+- **DB:** `postgresql://postgres:postgres@localhost:54322/postgres`
+- **Studio:** `http://localhost:54323`
+- **Inbucket (emails):** `http://localhost:54324`
+
+### Stop Local Supabase
+
+```bash
+supabase stop
+```
+
+## Supabase Configuration
+
+### supabase/config.toml
+
+Key configuration from the project:
+
+```toml supabase/config.toml
+project_id = "creativa-labs-cabina-de-fotos"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+```
+
+**From source:** `supabase/config.toml`
+
+## TypeScript Types
+
+### Generate Types from Database
+
+```bash
+# Generate TypeScript types
+supabase gen types typescript --local > src/types/database.types.ts
+```
+
+**Usage:**
+
+```typescript
+import type { Database } from './types/database.types';
+
+const supabase = createClient<Database>(url, key);
+
+// Now you get full type safety
+const { data } = await supabase
+  .from('events')
+  .select('*'); // data is typed as Event[]
+```
+
+## Monitoring & Analytics
+
+### Database Usage
+
+**Dashboard** → **Reports**:
+- Database size
+- Active connections
+- Queries per second
+- Slow queries
+
+### API Usage
+
+**Dashboard** → **API**:
+- Requests per day
+- Error rate
+- Response times
+- Top endpoints
+
+### Storage Usage
+
+**Dashboard** → **Storage**:
+- Total storage used
+- Bandwidth
+- File count per bucket
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection timeout">
+    **Causes:**
+    - Project paused (free tier inactivity)
+    - Incorrect URL or API key
+    - Network/firewall blocking Supabase
+    
+    **Solution:**
+    - Check project status in dashboard
+    - Verify credentials in `.env.local`
+    - Try from different network
+  </Accordion>
+
+  <Accordion title="RLS policy errors">
+    **Symptom:** Empty results despite data existing
+    
+    **Solution:**
+    - Check RLS policies in SQL Editor
+    - Temporarily disable RLS for testing (dev only):
+      ```sql
+      ALTER TABLE table_name DISABLE ROW LEVEL SECURITY;
+      ```
+    - Review [RLS Policies](/technical/rls-policies)
+  </Accordion>
+
+  <Accordion title="Storage upload fails">
+    **Common causes:**
+    - File exceeds size limit
+    - Missing RLS policy on storage.objects
+    - Invalid MIME type
+    
+    **Solution:**
+    - Check bucket settings
+    - Add storage policies
+    - Verify file type matches allowed types
+  </Accordion>
+
+  <Accordion title="Edge function timeout">
+    **Causes:**
+    - Function exceeds 150s limit
+    - Infinite loop or deadlock
+    - External API not responding
+    
+    **Solution:**
+    - Check function logs
+    - Add timeout to external fetch calls
+    - Optimize database queries
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Enable RLS on all tables" icon="shield-check">
+    Never disable RLS in production
+  </Card>
+  
+  <Card title="Use service role sparingly" icon="key">
+    Only in edge functions, never client-side
+  </Card>
+  
+  <Card title="Validate user input" icon="filter">
+    Always sanitize data before database insertion
+  </Card>
+  
+  <Card title="Monitor API usage" icon="chart-line">
+    Set up alerts for unusual activity
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/technical/database-schema">
+    Complete schema reference
+  </Card>
+  <Card title="RLS Policies" icon="shield" href="/technical/rls-policies">
+    Row Level Security guide
+  </Card>
+  <Card title="Edge Functions" icon="function" href="/api/edge-functions">
+    API documentation
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/technical/deployment">
+    Deploy to production
+  </Card>
+</CardGroup>

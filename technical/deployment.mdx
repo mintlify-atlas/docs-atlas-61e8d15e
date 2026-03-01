@@ -1,0 +1,462 @@
+---
+title: Deployment
+description: Deploy Creativa Labs Cabina to production environments
+---
+
+## Deployment Overview
+
+Cabina consists of two main components:
+
+1. **Frontend Application** - React + Vite SPA
+2. **Backend Services** - Supabase (Database, Auth, Storage, Edge Functions)
+
+## Frontend Deployment
+
+### Vercel (Recommended)
+
+Vercel provides optimal performance for Vite applications with automatic deployments.
+
+#### 1. Connect Repository
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login and deploy
+vercel login
+vercel
+```
+
+#### 2. Configure Build Settings
+
+```json vercel.json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install"
+}
+```
+
+#### 3. Set Environment Variables
+
+In Vercel Dashboard → Project → Settings → Environment Variables:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+GEMINI_API_KEY=your-gemini-key
+```
+
+#### 4. Deploy
+
+<CodeGroup>
+```bash Production
+vercel --prod
+```
+
+```bash Preview
+vercel
+```
+</CodeGroup>
+
+<Note>
+Vercel automatically deploys on every push to your main branch.
+</Note>
+
+### Netlify
+
+#### 1. Build Configuration
+
+Create `netlify.toml`:
+
+```toml netlify.toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+```
+
+#### 2. Deploy via CLI
+
+```bash
+# Install Netlify CLI
+npm i -g netlify-cli
+
+# Login and deploy
+netlify login
+netlify init
+netlify deploy --prod
+```
+
+### Docker Deployment
+
+#### Dockerfile
+
+```dockerfile Dockerfile
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+# Build arguments for environment variables
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG GEMINI_API_KEY
+
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV GEMINI_API_KEY=$GEMINI_API_KEY
+
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+#### nginx.conf
+
+```nginx nginx.conf
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /dashboard {
+        try_files $uri $uri/ /dashboard.html;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "DENY";
+    add_header X-Content-Type-Options "nosniff";
+    add_header X-XSS-Protection "1; mode=block";
+}
+```
+
+#### Build and Run
+
+```bash
+# Build image
+docker build \
+  --build-arg VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+  --build-arg VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+  --build-arg GEMINI_API_KEY=$GEMINI_API_KEY \
+  -t cabina:latest .
+
+# Run container
+docker run -p 8080:80 cabina:latest
+```
+
+## Supabase Backend Deployment
+
+### Database Setup
+
+#### 1. Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com)
+2. Create a new project
+3. Note your project URL and API keys
+
+#### 2. Run Migrations
+
+<CodeGroup>
+```bash Supabase CLI
+# Link to your project
+supabase link --project-ref your-project-ref
+
+# Push migrations
+supabase db push
+```
+
+```bash Manual SQL
+# Copy contents of migration files and run in Supabase SQL Editor
+# From: supabase/migrations/*.sql
+```
+</CodeGroup>
+
+#### 3. Configure RLS Policies
+
+RLS (Row Level Security) policies are included in migrations. Verify in Supabase Dashboard → Authentication → Policies.
+
+### Edge Functions Deployment
+
+#### 1. Deploy cabina-vision
+
+```bash
+supabase functions deploy cabina-vision
+```
+
+**Set secrets:**
+
+```bash
+supabase secrets set BANANA_API_KEY=your-kie-ai-key
+```
+
+#### 2. Deploy mercadopago-payment
+
+```bash
+supabase functions deploy mercadopago-payment
+```
+
+**Set secrets:**
+
+```bash
+supabase secrets set MP_ACCESS_TOKEN=your-mp-token
+```
+
+#### 3. Verify Deployment
+
+```bash
+supabase functions list
+```
+
+Expected output:
+```
+┌────────────────────────┬─────────┬────────────────────┐
+│ NAME                   │ VERSION │ CREATED AT         │
+├────────────────────────┼─────────┼────────────────────┤
+│ cabina-vision          │ 1       │ 2024-01-15 10:30   │
+│ mercadopago-payment    │ 1       │ 2024-01-15 10:32   │
+└────────────────────────┴─────────┴────────────────────┘
+```
+
+### Storage Buckets
+
+Create required storage buckets in Supabase Dashboard → Storage:
+
+1. **user_photos** - For uploaded user photos
+   - Public: No
+   - File size limit: 10MB
+   - Allowed MIME types: `image/png`, `image/jpeg`, `image/webp`
+
+2. **generations** - For AI-generated images
+   - Public: Yes
+   - File size limit: 50MB
+   - Allowed MIME types: `image/png`, `image/jpeg`
+
+3. **event_assets** - For event logos and branding
+   - Public: Yes
+   - File size limit: 5MB
+   - Allowed MIME types: `image/png`, `image/jpeg`, `image/svg+xml`
+
+## Custom Domain Configuration
+
+### Vercel Custom Domain
+
+1. Go to Vercel Dashboard → Project → Settings → Domains
+2. Add your custom domain
+3. Configure DNS records:
+
+```dns
+Type    Name    Value
+A       @       76.76.21.21
+CNAME   www     cname.vercel-dns.com
+```
+
+### SSL Certificate
+
+Vercel automatically provisions SSL certificates via Let's Encrypt.
+
+## Post-Deployment Checklist
+
+<Steps>
+  <Step title="Verify Frontend">
+    - [ ] App loads correctly at production URL
+    - [ ] Both `/` and `/dashboard.html` routes work
+    - [ ] SSL certificate is valid
+    - [ ] All assets load (images, fonts)
+  </Step>
+
+  <Step title="Test Authentication">
+    - [ ] Email signup works
+    - [ ] Google OAuth works (if configured)
+    - [ ] Password reset emails are sent
+    - [ ] Session persists after refresh
+  </Step>
+
+  <Step title="Verify Database">
+    - [ ] All migrations ran successfully
+    - [ ] RLS policies are enabled
+    - [ ] Test user CRUD operations
+    - [ ] Check foreign key constraints
+  </Step>
+
+  <Step title="Test Edge Functions">
+    - [ ] `cabina-vision` generates images
+    - [ ] `mercadopago-payment` creates payment links
+    - [ ] Webhooks receive notifications
+    - [ ] API keys are working
+  </Step>
+
+  <Step title="Storage & Assets">
+    - [ ] User photos upload correctly
+    - [ ] Generated images are stored
+    - [ ] Bucket permissions are correct
+    - [ ] CDN is serving images
+  </Step>
+
+  <Step title="Payment Integration">
+    - [ ] Payment creation works
+    - [ ] Webhooks update credits
+    - [ ] Test payment flow end-to-end
+    - [ ] Check Mercado Pago dashboard
+  </Step>
+</Steps>
+
+## Monitoring & Logging
+
+### Vercel Analytics
+
+Enable in Vercel Dashboard → Analytics:
+- Web Vitals tracking
+- Audience insights
+- Top pages
+
+### Supabase Monitoring
+
+Dashboard → Reports:
+- Database size and growth
+- API requests per day
+- Edge function invocations
+- Storage usage
+
+### Error Tracking
+
+Integrate Sentry for production error tracking:
+
+```bash
+npm install @sentry/react @sentry/vite-plugin
+```
+
+```typescript src/main.tsx
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: "your-sentry-dsn",
+  environment: "production",
+  tracesSampleRate: 1.0,
+});
+```
+
+## Rollback Strategy
+
+### Frontend Rollback
+
+<CodeGroup>
+```bash Vercel
+# List deployments
+vercel ls
+
+# Promote previous deployment to production
+vercel promote <deployment-url>
+```
+
+```bash Netlify
+# List deployments
+netlify sites:list
+
+# Restore from deploy ID
+netlify deploy --site=<site-id> --restore <deploy-id>
+```
+</CodeGroup>
+
+### Database Rollback
+
+```bash
+# Revert last migration
+supabase db reset
+
+# Or manually run down migration
+psql -h db.project.supabase.co -U postgres -d postgres -f rollback.sql
+```
+
+<Warning>
+Database rollbacks can cause data loss. Always backup before major migrations.
+</Warning>
+
+## Performance Optimization
+
+<CardGroup cols={2}>
+  <Card title="Enable Compression" icon="file-zipper">
+    Gzip/Brotli compression in nginx or CDN
+  </Card>
+  
+  <Card title="Image Optimization" icon="image">
+    Use WebP format, lazy loading, and Supabase image transformation
+  </Card>
+  
+  <Card title="Code Splitting" icon="scissors">
+    Vite automatically code-splits routes
+  </Card>
+  
+  <Card title="CDN Caching" icon="server">
+    Set appropriate cache headers for static assets
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="White screen after deployment">
+    Check browser console for errors. Common causes:
+    - Missing environment variables
+    - Incorrect base path in `vite.config.ts`
+    - CORS issues with Supabase
+  </Accordion>
+
+  <Accordion title="Edge functions not responding">
+    Verify:
+    - Functions are deployed: `supabase functions list`
+    - Secrets are set correctly
+    - Check function logs in Supabase Dashboard
+  </Accordion>
+
+  <Accordion title="Database connection errors">
+    Ensure:
+    - `VITE_SUPABASE_URL` is correct
+    - `VITE_SUPABASE_ANON_KEY` matches your project
+    - Project is not paused (free tier)
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/technical/database-schema">
+    Review the complete database structure
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/edge-functions">
+    Explore Edge Functions API
+  </Card>
+</CardGroup>
