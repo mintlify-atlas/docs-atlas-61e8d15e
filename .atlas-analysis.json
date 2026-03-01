@@ -1,0 +1,170 @@
+{
+  "projectType": "saas",
+  "projectName": "Creativa Labs Cabina",
+  "projectDescription": "AI-powered photo booth platform with multi-tier event management and white-label capabilities",
+  "theme": "palm",
+  "primaryColor": "#135bec",
+  "lightColor": "#6b9fff",
+  "darkColor": "#0a3d9e",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/business-models",
+              "concepts/multi-tier-system",
+              "concepts/credit-system",
+              "concepts/events"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "User Guides",
+        "groups": [
+          {
+            "group": "For End Users",
+            "pages": [
+              "guides/user/getting-started",
+              "guides/user/purchasing-credits",
+              "guides/user/generating-photos",
+              "guides/user/gallery"
+            ]
+          },
+          {
+            "group": "For Partners",
+            "pages": [
+              "guides/partner/onboarding",
+              "guides/partner/creating-events",
+              "guides/partner/managing-credits",
+              "guides/partner/white-label"
+            ]
+          },
+          {
+            "group": "For Event Organizers",
+            "pages": [
+              "guides/organizer/event-setup",
+              "guides/organizer/configuring-styles",
+              "guides/organizer/qr-codes",
+              "guides/organizer/live-gallery"
+            ]
+          },
+          {
+            "group": "For Administrators",
+            "pages": [
+              "guides/admin/master-dashboard",
+              "guides/admin/managing-partners",
+              "guides/admin/analytics",
+              "guides/admin/style-management"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
+            "group": "AI Generation",
+            "pages": [
+              "features/ai-styles",
+              "features/style-categories",
+              "features/image-processing"
+            ]
+          },
+          {
+            "group": "Event Management",
+            "pages": [
+              "features/event-creation",
+              "features/event-configuration",
+              "features/guest-experience",
+              "features/event-gallery"
+            ]
+          },
+          {
+            "group": "Dashboards",
+            "pages": [
+              "features/master-dashboard",
+              "features/partner-dashboard",
+              "features/client-dashboard"
+            ]
+          },
+          {
+            "group": "Monetization",
+            "pages": [
+              "features/credit-packs",
+              "features/payment-integration",
+              "features/pricing-tiers"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Technical",
+        "groups": [
+          {
+            "group": "Setup & Deployment",
+            "pages": [
+              "technical/installation",
+              "technical/environment-variables",
+              "technical/deployment"
+            ]
+          },
+          {
+            "group": "Database",
+            "pages": [
+              "technical/database-schema",
+              "technical/migrations",
+              "technical/rls-policies"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/edge-functions",
+              "api/cabina-vision",
+              "api/payment-webhook"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "technical/supabase-integration",
+              "technical/mercadopago-integration",
+              "technical/ai-model-integration"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered photo generation with 50+ artistic styles",
+    "Multi-tier business model (B2C and B2B2C)",
+    "White-label event management for partners",
+    "Zero-friction guest experience with QR code access",
+    "Credit-based monetization with Mercado Pago integration",
+    "Real-time event galleries and analytics",
+    "Three-level dashboard hierarchy (Master, Partner, Client)",
+    "PWA support for mobile and kiosk modes"
+  ],
+  "publicApiSurface": [
+    "Supabase Edge Function: cabina-vision (AI image generation)",
+    "Supabase Edge Function: mercadopago-payment (payment processing)",
+    "Event API: Create and manage events",
+    "Generation API: Process and store AI-generated images",
+    "Partner API: Manage partner accounts and credits",
+    "Gallery API: Fetch event and user galleries",
+    "Auth API: User authentication and authorization"
+  ]
+}
